@@ -25,7 +25,8 @@
     </div>
 
 <script>
-const API_URL = "https://fastapi-carbon-backend.onrender.com";
+const API_URL =
+  "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
 
 const ctx = document.getElementById("electricChart").getContext("2d");
 
@@ -50,12 +51,11 @@ const myChart = new Chart(ctx, {
 });
 
 function updateCharts() {
-    fetch("https://fastapi-carbon-backend.onrender.com")
+    fetch(API_URL)
         .then(res => res.json())
         .then(res => {
-            const hourlyData = res.data;
+            const hourlyData = res.data || [];
 
-            // Clear old data
             myChart.data.labels = [];
             myChart.data.datasets[0].data = [];
 
@@ -64,26 +64,27 @@ function updateCharts() {
                 myChart.data.datasets[0].data.push(entry.shredding_carbon);
             });
 
-            // Alarm color logic
-            const maxVal = Math.max(...myChart.data.datasets[0].data);
-            myChart.data.datasets[0].borderColor =
-                maxVal > 0.002 ? "red" : "#2D6A4F";
+            if (myChart.data.datasets[0].data.length > 0) {
+                const maxVal = Math.max(...myChart.data.datasets[0].data);
+                myChart.data.datasets[0].borderColor =
+                    maxVal > 0.002 ? "red" : "#2D6A4F";
+            }
 
             myChart.update();
         })
         .catch(err => console.error("API Error:", err));
 }
 
-// Load once on page load
 updateCharts();
-
-// Update every 60 minutes (hourly)
 setInterval(updateCharts, 3600000);
 </script>
+
+
 
 </body>
 
 </html>
+
 
 
 

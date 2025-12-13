@@ -38,7 +38,7 @@
     });
 
     function updateCharts() {
-        fetch("sensor.php")
+        fetch("https://fastapi-carbon-backend.onrender.com")
             .then(res => res.json())
             .then(data => {
                 const time = new Date(data.timestamp * 1000).toLocaleTimeString();
@@ -67,3 +67,4 @@
 </body>
 
 </html>
+

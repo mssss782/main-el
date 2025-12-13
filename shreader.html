@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shredder - Carbon Footprint</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Shared Styles */
+        body { font-family: 'Poppins', sans-serif; padding: 30px; background-color: #f4f4f4; }
+        h1 { text-align: center; color: #2D6A4F; }
+        .chart-container { 
+            background-color: white; padding: 20px; border-radius: 20px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 80%; margin: 20px auto; 
+        }
+        .back-btn { display: block; width: 150px; margin: 20px auto; text-align: center; padding: 10px; background: #2D6A4F; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>SHREDDER PROCESS: ELECTRICITY LOAD</h1>
+    <a href="file:///C:/Users/mohit/OneDrive/Desktop/web/mainpage_EL.html" class="back-btn">Back to Main</a>
+
+    <div class="chart-container">
+        <canvas id="electricChart"></canvas>
+    </div>
+
+<script>
+    const ctx = document.getElementById("electricChart").getContext("2d");
+    const myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Electricity Emission (CO2)",
+                data: [],
+                borderColor: "green",
+                borderWidth: 2,
+                tension: 0.2
+            }]
+        },
+        options: { animation: false, scales: { y: { beginAtZero: true }}}
+    });
+
+    function updateCharts() {
+        // Simulating fetch for demo. Replace 'sensor.php' with your actual file
+        fetch("sensor.php")
+            .then(res => res.json())
+            .then(data => {
+                const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                const value = data.electricity; // Specific to this page
+
+                // Update Chart Color Logic
+                let color = "green";
+                if (value <= 50) { color = "green"; }
+                else if (value > 50 && value <= 80) { color = "orange"; }
+                else { color = "red"; }
+
+                myChart.data.datasets[0].borderColor = color;
+                
+                // Push Data
+                myChart.data.labels.push(time);
+                myChart.data.datasets[0].data.push(value);
+
+                // Keep only last 30 readings
+                if (myChart.data.labels.length > 30) {
+                    myChart.data.labels.shift();
+                    myChart.data.datasets[0].data.shift();
+                }
+                myChart.update();
+            })
+            .catch(err => console.error("Error fetching data:", err));
+    }
+
+    // Update every 5 seconds
+    setInterval(updateCharts, 5000);
+</script>
+</body>
+</html>

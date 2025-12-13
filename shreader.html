@@ -25,56 +25,64 @@
     </div>
 
 <script>
-    const ctx = document.getElementById("electricChart").getContext("2d");
-    const myChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                label: "Electricity Emission (CO2)",
-                data: [],
-                borderColor: "green",
-                borderWidth: 2,
-                tension: 0.2
-            }]
-        },
-        options: { animation: false, scales: { y: { beginAtZero: true }}}
-    });
+const API_URL = "https://carbon-api.onrender.com/carbon-footprint/hourly";
 
-    function updateCharts() {
-        // Simulating fetch for demo. Replace 'sensor.php' with your actual file
-        fetch("https://fastapi-carbon-backend.onrender.com")
-            .then(res => res.json())
-            .then(data => {
-                const time = new Date(data.timestamp * 1000).toLocaleTimeString();
-                const value = data.electricity; // Specific to this page
+const ctx = document.getElementById("electricChart").getContext("2d");
 
-                // Update Chart Color Logic
-                let color = "green";
-                if (value <= 50) { color = "green"; }
-                else if (value > 50 && value <= 80) { color = "orange"; }
-                else { color = "red"; }
-
-                myChart.data.datasets[0].borderColor = color;
-                
-                // Push Data
-                myChart.data.labels.push(time);
-                myChart.data.datasets[0].data.push(value);
-
-                // Keep only last 30 readings
-                if (myChart.data.labels.length > 30) {
-                    myChart.data.labels.shift();
-                    myChart.data.datasets[0].data.shift();
-                }
-                myChart.update();
-            })
-            .catch(err => console.error("Error fetching data:", err));
+const myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Shredding Carbon Emission (kg CO₂)",
+            data: [],
+            borderColor: "#2D6A4F",
+            borderWidth: 2,
+            tension: 0.3
+        }]
+    },
+    options: {
+        animation: true,
+        scales: {
+            y: { beginAtZero: true }
+        }
     }
+});
 
-    // Update every 5 seconds
-    setInterval(updateCharts, 5000);
+function updateCharts() {
+    fetch(https:fastapi-carbon-backend.onrender.com)
+        .then(res => res.json())
+        .then(res => {
+            const hourlyData = res.data;
+
+            // Clear old data
+            myChart.data.labels = [];
+            myChart.data.datasets[0].data = [];
+
+            hourlyData.forEach(entry => {
+                myChart.data.labels.push(entry.hour);
+                myChart.data.datasets[0].data.push(entry.shredding_carbon);
+            });
+
+            // Alarm color logic
+            const maxVal = Math.max(...myChart.data.datasets[0].data);
+            myChart.data.datasets[0].borderColor =
+                maxVal > 0.002 ? "red" : "#2D6A4F";
+
+            myChart.update();
+        })
+        .catch(err => console.error("API Error:", err));
+}
+
+// Load once on page load
+updateCharts();
+
+// Update every 60 minutes (hourly)
+setInterval(updateCharts, 3600000);
 </script>
+
 </body>
 
 </html>
+
 

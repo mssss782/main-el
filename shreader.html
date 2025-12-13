@@ -51,33 +51,36 @@ const myChart = new Chart(ctx, {
 });
 
 function updateCharts() {
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(res => {
-            console.log("API Response:", res);
-            const hourlyData = res.data || [];
+    // Mock response for testing
+    const res = {
+      data: [
+        { hour: "10:00", shredding_carbon: 0.0001 },
+        { hour: "11:00", shredding_carbon: 0.0003 },
+        { hour: "12:00", shredding_carbon: 0.0006 }
+      ]
+    };
 
-            myChart.data.labels = [];
-            myChart.data.datasets[0].data = [];
+    console.log("Mock API Response:", res);
+    const hourlyData = res.data || [];
 
-            hourlyData.forEach(entry => {
-                myChart.data.labels.push(entry.hour);
-                myChart.data.datasets[0].data.push(entry.shredding_carbon);
-            });
+    myChart.data.labels = [];
+    myChart.data.datasets[0].data = [];
 
-            if (myChart.data.datasets[0].data.length > 0) {
-                const maxVal = Math.max(...myChart.data.datasets[0].data);
-                myChart.data.datasets[0].borderColor =
-                    maxVal > 0.002 ? "red" : "#2D6A4F";
-            }
+    hourlyData.forEach(entry => {
+        myChart.data.labels.push(entry.hour);
+        myChart.data.datasets[0].data.push(entry.shredding_carbon);
+    });
 
-            myChart.update();
-        })
-        .catch(err => console.error("API Error:", err));
+    if (myChart.data.datasets[0].data.length > 0) {
+        const maxVal = Math.max(...myChart.data.datasets[0].data);
+        myChart.data.datasets[0].borderColor =
+            maxVal > 0.002 ? "red" : "#2D6A4F";
+    }
+
+    myChart.update();
 }
 
-updateCharts();
-setInterval(updateCharts, 3600000);
+
 </script>
 
 
@@ -85,6 +88,7 @@ setInterval(updateCharts, 3600000);
 </body>
 
 </html>
+
 
 
 

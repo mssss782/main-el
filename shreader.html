@@ -54,6 +54,7 @@ function updateCharts() {
     fetch(API_URL)
         .then(res => res.json())
         .then(res => {
+            console.log("API Response:", res);
             const hourlyData = res.data || [];
 
             myChart.data.labels = [];
@@ -84,6 +85,7 @@ setInterval(updateCharts, 3600000);
 </body>
 
 </html>
+
 
 
 

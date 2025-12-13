@@ -25,7 +25,7 @@
     </div>
 
 <script>
-const API_URL = "https://carbon-api.onrender.com/carbon-footprint/hourly";
+const API_URL = "https://fastapi-carbon-backend.onrender.com";
 
 const ctx = document.getElementById("electricChart").getContext("2d");
 
@@ -50,7 +50,7 @@ const myChart = new Chart(ctx, {
 });
 
 function updateCharts() {
-    fetch(https:fastapi-carbon-backend.onrender.com)
+    fetch("https://fastapi-carbon-backend.onrender.com")
         .then(res => res.json())
         .then(res => {
             const hourlyData = res.data;
@@ -84,5 +84,6 @@ setInterval(updateCharts, 3600000);
 </body>
 
 </html>
+
 
 

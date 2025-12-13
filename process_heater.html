@@ -21,50 +21,62 @@
     </div>
 
 <script>
-    const ctx = document.getElementById("heatChart").getContext("2d");
-    const myChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                label: "Heat Emission",
-                data: [],
-                borderColor: "#d62828",
-                borderWidth: 2,
-                tension: 0.2
-            }]
-        },
-        options: { animation: false, scales: { y: { beginAtZero: true }}}
-    });
+const API_URL =
+  "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
 
-    function updateCharts() {
-        fetch("https://fastapi-carbon-backend.onrender.com")
-            .then(res => res.json())
-            .then(data => {
-                const time = new Date(data.timestamp * 1000).toLocaleTimeString();
-                const value = data.heat; // Specific to this page
+const ctx = document.getElementById("heatChart").getContext("2d");
 
-                // Color Logic
-                let color = "green";
-                if (value <= 50) { color = "green"; }
-                else if (value > 50 && value <= 80) { color = "orange"; }
-                else { color = "red"; }
-
-                myChart.data.datasets[0].borderColor = color;
-
-                myChart.data.labels.push(time);
-                myChart.data.datasets[0].data.push(value);
-
-                if (myChart.data.labels.length > 30) {
-                    myChart.data.labels.shift();
-                    myChart.data.datasets[0].data.shift();
-                }
-                myChart.update();
-            });
+const myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Heating Carbon Emission (kg CO₂)",
+            data: [],
+            borderColor: "#d62828",
+            borderWidth: 2,
+            tension: 0.3
+        }]
+    },
+    options: {
+        animation: true,
+        scales: {
+            y: { beginAtZero: true }
+        }
     }
-    setInterval(updateCharts, 5000);
+});
+
+function updateCharts() {
+    fetch(API_URL)
+        .then(res => res.json())
+        .then(res => {
+            const hourlyData = res.data || [];
+
+            myChart.data.labels = [];
+            myChart.data.datasets[0].data = [];
+
+            hourlyData.forEach(entry => {
+                myChart.data.labels.push(entry.hour);
+                myChart.data.datasets[0].data.push(entry.heating_carbon);
+            });
+
+            if (myChart.data.datasets[0].data.length > 0) {
+                const maxVal = Math.max(...myChart.data.datasets[0].data);
+                myChart.data.datasets[0].borderColor =
+                    maxVal > 0.002 ? "red" : "#d62828";
+            }
+
+            myChart.update();
+        })
+        .catch(err => console.error("API Error:", err));
+}
+
+updateCharts();
+setInterval(updateCharts, 3600000);
 </script>
+
 </body>
 
 </html>
+
 

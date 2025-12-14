@@ -62,6 +62,7 @@ const chart = new Chart(ctx, {
 
 function updateCharts(){
  fetch(API_URL).then(r=>r.json()).then(res=>{
+    console.log("Heat API data:", res.data);
    const data=res.data||[];
    const values=data.map(d=>d.heat_carbon);
    const avg=values.reduce((a,b)=>a+b,0)/values.length||0;
@@ -88,4 +89,5 @@ setInterval(updateCharts,3600000);
 </script>
 </body>
 </html>
+
 

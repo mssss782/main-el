@@ -2,11 +2,19 @@
 <html>
 <head>
 <title>Shredder Carbon Footprint</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
 <style>
-body { font-family: Poppins; background:#f4f4f4; padding:30px; }
+body {
+  font-family: Poppins;
+  background:#f4f4f4;
+  padding:30px;
+}
+
 .chart-container {
   width: 80%;
   margin: auto;
@@ -14,10 +22,12 @@ body { font-family: Poppins; background:#f4f4f4; padding:30px; }
   padding: 20px;
   border-radius: 20px;
 }
+
 .glow {
   box-shadow: 0 0 25px red;
 }
-  .back-btn {
+
+.back-btn {
   display: inline-block;
   margin: 10px 0 20px 10%;
   padding: 10px 18px;
@@ -26,19 +36,13 @@ body { font-family: Poppins; background:#f4f4f4; padding:30px; }
   text-decoration: none;
   font-weight: 600;
   border-radius: 8px;
-  transition: background 0.3s, transform 0.2s;
 }
-
-.back-btn:hover {
-  background-color: #1b4332;
-  transform: translateX(-3px);
-}
-
 </style>
 </head>
 
 <body>
-  <a href="index.html" class="back-btn">⬅ Back to Main</a>
+
+<a href="index.html" class="back-btn">⬅ Back to Main</a>
 <h2 align="center">Shredder – Electricity Emission</h2>
 
 <div class="chart-container" id="container">
@@ -47,7 +51,6 @@ body { font-family: Poppins; background:#f4f4f4; padding:30px; }
 
 <script>
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
-
 const ctx = document.getElementById("chart").getContext("2d");
 
 const chart = new Chart(ctx, {
@@ -62,24 +65,47 @@ const chart = new Chart(ctx, {
         tension: 0.3
       },
       {
-        label: "Average Emission",
+        label: "Average",
         data: [],
         borderDash: [5,5],
         borderColor: "blue",
         pointRadius: 0
       },
       {
-        label: "Peak Emission",
+        label: "Peak",
         data: [],
         borderDash: [2,2],
         borderColor: "purple",
         pointRadius: 0
       }
     ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: {
+        type: "time",
+        time: {
+          unit: "hour",
+          displayFormats: { hour: "HH:mm" }
+        },
+        title: {
+          display: true,
+          text: "Time"
+        }
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "CO₂ Emission (mg)"
+        }
+      }
+    }
   }
 });
-function updateCharts() {
 
+function updateCharts() {
   fetch(API_URL)
     .then(res => res.json())
     .then(res => {
@@ -87,55 +113,44 @@ function updateCharts() {
 
       const data = res.data || [];
 
-      // 🔥 Convert kg → grams (IMPORTANT)
-      const values = data.map(d => d.shredding_carbon * 1000000);
+      // ✅ Convert kg → mg
+      const values = data.map(d => d.shredding_carbon * 1000);
 
       const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
       const peak = Math.max(...values, 0);
 
-      chart.data.labels = data.map(d => d.hour);
+      // Time labels
+      chart.data.labels = data.map(d =>
+        new Date(d.hour.replace(" ", "T"))
+      );
+
       chart.data.datasets[0].data = values;
       chart.data.datasets[1].data = values.map(()=>avg);
       chart.data.datasets[2].data = values.map(()=>peak);
 
-      // COLOR + GLOW LOGIC
+      // 🚨 Color + Glow Logic
       let color = "green";
       if (peak > 2) color = "red";
       else if (peak > 1) color = "orange";
 
       chart.data.datasets[0].borderColor = color;
       document.getElementById("container")
-        ?.classList.toggle("glow", color === "red");
+        .classList.toggle("glow", color === "red");
 
-      // 🔥 FIX FLAT LINE
-      chart.options.scales = {
-        y: {
-          min: 0,
-          max: peak * 1.3
-        }
-      };
+      // Dynamic Y-scale (prevents flat line)
+      chart.options.scales.y.max = peak * 1.3 || 1;
 
       chart.update();
-    });
+    })
+    .catch(err => console.error("API Error:", err));
 }
 
 updateCharts();
 setInterval(updateCharts, 60000);
-
-
-
-
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
-
 
 
 

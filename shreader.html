@@ -56,7 +56,7 @@ const chart = new Chart(ctx, {
     labels: [],
     datasets: [
       {
-        label: "Shredding Emission (g CO₂)",
+        label: "Shredding Emission (mg CO₂)",
         data: [],
         borderWidth: 2,
         tension: 0.3
@@ -88,7 +88,7 @@ function updateCharts() {
       const data = res.data || [];
 
       // 🔥 Convert kg → grams (IMPORTANT)
-      const values = data.map(d => d.shredding_carbon * 1000);
+      const values = data.map(d => d.shredding_carbon * 1000000);
 
       const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
       const peak = Math.max(...values, 0);
@@ -128,6 +128,7 @@ setInterval(updateCharts, 60000);
 </script>
 </body>
 </html>
+
 
 
 

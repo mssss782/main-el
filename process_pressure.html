@@ -53,7 +53,8 @@ const chart = new Chart(ctx,{
  data:{
   labels:[],
   datasets:[
-   {label:"Pressure Emission(mg CO2)",data:[],borderWidth:2},
+   {label:"Pressure Emission(mg CO2)",data:[],borderWidth:2, tension: 0.4},
+  
    {label:"Average",data:[],borderDash:[5,5],borderColor:"blue",pointRadius:0},
    {label:"Peak",data:[],borderDash:[2,2],borderColor:"purple",pointRadius:0}
   ]
@@ -103,6 +104,7 @@ setInterval(updateCharts,60000);
 </script>
 </body>
 </html>
+
 
 
 

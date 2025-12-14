@@ -1,82 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Heater - Carbon Footprint</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Poppins', sans-serif; padding: 30px; background-color: #f4f4f4; }
-        h1 { text-align: center; color: #d62828; } /* Red title for Heat */
-        .chart-container { background: white; padding: 20px; border-radius: 20px; width: 80%; margin: 20px auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .back-btn { display: block; width: 150px; margin: 20px auto; text-align: center; padding: 10px; background: #2D6A4F; color: white; text-decoration: none; border-radius: 5px; }
-    </style>
+<title>Heat Carbon Footprint</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Poppins; background:#f4f4f4; padding:30px; }
+.chart-container {
+  width: 80%;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+}
+.glow { box-shadow: 0 0 25px red; }
+</style>
 </head>
+
 <body>
+<h2 align="center">Heating Process – Thermal Emission</h2>
 
-    <h1>HEATING PROCESS: THERMAL EMISSION</h1>
-    <a href="index.html" class="back-btn">Back to Main</a>
-
-    <div class="chart-container">
-        <canvas id="heatChart"></canvas>
-    </div>
+<div class="chart-container" id="container">
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
-const API_URL =
-  "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
+const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
+const ctx = document.getElementById("chart").getContext("2d");
 
-const ctx = document.getElementById("heatChart").getContext("2d");
-
-const myChart = new Chart(ctx, {
-    type: "line",
-    data: {
-        labels: [],
-        datasets: [{
-            label: "Heating Carbon Emission (kg CO₂)",
-            data: [],
-            borderColor: "#d62828",
-            borderWidth: 2,
-            tension: 0.3
-        }]
-    },
-    options: {
-        animation: true,
-        scales: {
-            y: { beginAtZero: true }
-        }
-    }
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "Heat Emission", data: [], borderWidth: 2 },
+      { label: "Average", data: [], borderDash:[5,5], borderColor:"blue", pointRadius:0 },
+      { label: "Peak", data: [], borderDash:[2,2], borderColor:"purple", pointRadius:0 }
+    ]
+  }
 });
 
-function updateCharts() {
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(res => {
-            const hourlyData = res.data || [];
+function updateCharts(){
+ fetch(API_URL).then(r=>r.json()).then(res=>{
+   const data=res.data||[];
+   const values=data.map(d=>d.heat_carbon);
+   const avg=values.reduce((a,b)=>a+b,0)/values.length||0;
+   const peak=Math.max(...values,0);
 
-            myChart.data.labels = [];
-            myChart.data.datasets[0].data = [];
+   chart.data.labels=data.map(d=>d.hour);
+   chart.data.datasets[0].data=values;
+   chart.data.datasets[1].data=values.map(()=>avg);
+   chart.data.datasets[2].data=values.map(()=>peak);
 
-            hourlyData.forEach(entry => {
-                myChart.data.labels.push(entry.hour);
-                myChart.data.datasets[0].data.push(entry.heating_carbon);
-            });
+   let color="green";
+   if(peak>2) color="red";
+   else if(peak>1) color="orange";
 
-            if (myChart.data.datasets[0].data.length > 0) {
-                const maxVal = Math.max(...myChart.data.datasets[0].data);
-                myChart.data.datasets[0].borderColor =
-                    maxVal > 0.002 ? "red" : "#d62828";
-            }
+   chart.data.datasets[0].borderColor=color;
+   document.getElementById("container").classList.toggle("glow",color==="red");
 
-            myChart.update();
-        })
-        .catch(err => console.error("API Error:", err));
+   chart.update();
+ });
 }
 
 updateCharts();
-setInterval(updateCharts, 3600000);
+setInterval(updateCharts,3600000);
 </script>
-
 </body>
-
 </html>
-
-

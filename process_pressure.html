@@ -142,6 +142,39 @@ function updateCharts(){
      const data = res.data || [];
 
      // kg → milligra
+const values = data.map(d => d.pressure_carbon * 1_000_000);
+
+     const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
+     const peak = Math.max(...values, 0);
+
+     chart.data.labels = data.map(d => d.hour);
+     chart.data.datasets[0].data = values;
+     chart.data.datasets[1].data = values.map(()=>avg);
+     chart.data.datasets[2].data = values.map(()=>peak);
+
+     /* COLOR + GLOW LOGIC */
+     let color = "green";
+     if (peak > WARNING_LIMIT) color = "red";
+     else if (peak > SAFE_LIMIT) color = "orange";
+
+     chart.data.datasets[0].borderColor = color;
+     document.getElementById("container")
+       .classList.toggle("glow", color==="red");
+
+     chart.options.scales.y.max = peak * 1.3;
+
+     chart.update();
+   });
+}
+
+/* ================= RUN ================= */
+
+updateCharts();
+setInterval(updateCharts,60000); // every 1 minute
+</script>
+
+</body>
+</html>
 
 
 

@@ -1,95 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Shredder - Carbon Footprint</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Shared Styles */
-        body { font-family: 'Poppins', sans-serif; padding: 30px; background-color: #f4f4f4; }
-        h1 { text-align: center; color: #2D6A4F; }
-        .chart-container { 
-            background-color: white; padding: 20px; border-radius: 20px; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 80%; margin: 20px auto; 
-        }
-        .back-btn { display: block; width: 150px; margin: 20px auto; text-align: center; padding: 10px; background: #2D6A4F; color: white; text-decoration: none; border-radius: 5px; }
-    </style>
+<title>Shredder Carbon Footprint</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Poppins; background:#f4f4f4; padding:30px; }
+.chart-container {
+  width: 80%;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+}
+.glow {
+  box-shadow: 0 0 25px red;
+}
+</style>
 </head>
+
 <body>
+<h2 align="center">Shredder – Electricity Emission</h2>
 
-    <h1>SHREDDER PROCESS: ELECTRICITY LOAD</h1>
-    <a href="index.html" class="back-btn">Back to Main</a>
-
-    <div class="chart-container">
-        <canvas id="electricChart"></canvas>
-    </div>
+<div class="chart-container" id="container">
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
-
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
 
-const ctx = document.getElementById("electricChart").getContext("2d");
+const ctx = document.getElementById("chart").getContext("2d");
 
-const myChart = new Chart(ctx, {
-    type: "line",
-    data: {
-        labels: [],
-        datasets: [{
-            label: "Shredding Carbon Emission (kg CO₂)",
-            data: [],
-            borderColor: "#2D6A4F",
-            borderWidth: 2,
-            tension: 0.3
-        }]
-    },
-    options: {
-        animation: true,
-        scales: {
-            y: { beginAtZero: true }
-        }
-    }
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: "Shredding Emission (kg CO₂)",
+        data: [],
+        borderWidth: 2,
+        tension: 0.3
+      },
+      {
+        label: "Average Emission",
+        data: [],
+        borderDash: [5,5],
+        borderColor: "blue",
+        pointRadius: 0
+      },
+      {
+        label: "Peak Emission",
+        data: [],
+        borderDash: [2,2],
+        borderColor: "purple",
+        pointRadius: 0
+      }
+    ]
+  }
 });
 
 function updateCharts() {
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(res => {
-            console.log("API Response:", res);
-            const hourlyData = res.data || [];
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(res => {
+      const data = res.data || [];
 
-            myChart.data.labels = [];
-            myChart.data.datasets[0].data = [];
+      const values = data.map(d => d.shredding_carbon);
+      const avg = values.reduce((a,b)=>a+b,0) / values.length || 0;
+      const peak = Math.max(...values, 0);
 
-            hourlyData.forEach(entry => {
-                myChart.data.labels.push(entry.hour);
-                myChart.data.datasets[0].data.push(entry.shredding_carbon);
-            });
+      chart.data.labels = data.map(d => d.hour);
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[1].data = values.map(()=>avg);
+      chart.data.datasets[2].data = values.map(()=>peak);
 
-            if (myChart.data.datasets[0].data.length > 0) {
-                const maxVal = Math.max(...myChart.data.datasets[0].data);
-                myChart.data.datasets[0].borderColor =
-                    maxVal > 0.002 ? "red" : "#2D6A4F";
-            }
+      // COLOR + GLOW
+      let color = "green";
+      if (peak > 1.8) color = "red";
+      else if (peak > 0.8) color = "orange";
 
-            myChart.update();
-        })
-        .catch(err => console.error("API Error:", err));
+      chart.data.datasets[0].borderColor = color;
+      document.getElementById("container").classList.toggle("glow", color==="red");
+
+      chart.update();
+    });
 }
 
-// Call it once to render the chart
 updateCharts();
-
-// Optional: refresh every hour
 setInterval(updateCharts, 3600000);
-
-
 </script>
-
-
-
 </body>
-
 </html>
+
+
 
 
 

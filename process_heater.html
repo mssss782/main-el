@@ -95,7 +95,8 @@ function updateCharts(){
      const data = res.data || [];
 
      // Convert kg → grams
-     const values = data.map(d => d.heat_carbon * 1000);
+    const values = data.map(d => d.heating_carbon * 1000);
+
 
      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
      const peak = Math.max(...values, 0);
@@ -125,6 +126,7 @@ setInterval(updateCharts,60000);
 </script>
 </body>
 </html>
+
 
 
 

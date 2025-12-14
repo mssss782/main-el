@@ -79,6 +79,10 @@ function updateCharts(){
 
    chart.data.datasets[0].borderColor=color;
    document.getElementById("container").classList.toggle("glow",color==="red");
+const maxVal = Math.max(...values, 0.001);
+
+chart.options.scales.y.max = maxVal * 1.2; // 20% headroom
+chart.options.scales.y.min = 0;
 
    chart.update();
  });
@@ -89,6 +93,7 @@ setInterval(updateCharts,60000);
 </script>
 </body>
 </html>
+
 
 
 

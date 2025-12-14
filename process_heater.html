@@ -45,6 +45,16 @@ body {
 </head>
 
 <body>
+<div id="suggestion-box"
+     style="
+       margin: 20px auto;
+       width: 80%;
+       padding: 15px;
+       border-radius: 12px;
+       font-weight: 600;
+       display: none;
+     ">
+</div>
 
 <a href="index.html" class="back-btn">⬅ Back to Main</a>
 <h2 align="center">Heating Process – Thermal Emission</h2>
@@ -65,6 +75,29 @@ const WARNING_LIMIT = 2;
 /* ================= CHART ================= */
 
 const ctx = document.getElementById("chart").getContext("2d");
+function showSuggestion(level, message) {
+  const box = document.getElementById("suggestion-box");
+
+  box.style.display = "block";
+
+  if (level === "red") {
+    box.style.background = "#ffe5e5";
+    box.style.color = "#b00020";
+    box.style.border = "2px solid red";
+  } 
+  else if (level === "yellow") {
+    box.style.background = "#fff4cc";
+    box.style.color = "#8a6d00";
+    box.style.border = "2px solid orange";
+  } 
+  else {
+    box.style.background = "#e6f4ea";
+    box.style.color = "#1e7e34";
+    box.style.border = "2px solid green";
+  }
+
+  box.innerText = message;
+}
 
 const chart = new Chart(ctx, {
   type: "line",
@@ -141,6 +174,28 @@ function updateCharts(){
 
      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
      const peak = Math.max(...values, 0);
+// Thresholds (g CO₂)
+const RED_LIMIT = 2;
+const YELLOW_LIMIT = 1;
+
+if (peak > RED_LIMIT) {
+  showSuggestion(
+    "red",
+    "⚠️ High thermal emission detected. Check heater control, insulation quality, and temperature sensors."
+  );
+}
+else if (peak > YELLOW_LIMIT) {
+  showSuggestion(
+    "yellow",
+    "⚠️ Thermal emission above normal. Consider recalibrating temperature settings."
+  );
+}
+else {
+  showSuggestion(
+    "green",
+    "✅ Heating process running efficiently."
+  );
+}
 
      chart.data.labels = data.map(d => d.hour);
      chart.data.datasets[0].data = values;
@@ -170,6 +225,7 @@ setInterval(updateCharts,60000); // every 1 minute
 
 </body>
 </html>
+
 
 
 

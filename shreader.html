@@ -1,20 +1,11 @@
-<!DOCTYPE html>
 <html>
 <head>
 <title>Shredder Carbon Footprint</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
 <style>
-body {
-  font-family: Poppins;
-  background:#f4f4f4;
-  padding:30px;
-}
-
+body { font-family: Poppins; background:#f4f4f4; padding:30px; }
 .chart-container {
   width: 80%;
   margin: auto;
@@ -22,12 +13,10 @@ body {
   padding: 20px;
   border-radius: 20px;
 }
-
 .glow {
   box-shadow: 0 0 25px red;
 }
-
-.back-btn {
+  .back-btn {
   display: inline-block;
   margin: 10px 0 20px 10%;
   padding: 10px 18px;
@@ -36,20 +25,28 @@ body {
   text-decoration: none;
   font-weight: 600;
   border-radius: 8px;
+  transition: background 0.3s, transform 0.2s;
 }
+
+.back-btn:hover {
+  background-color: #1b4332;
+  transform: translateX(-3px);
+}
+
 </style>
 </head>
 
 <body>
-
-<a href="index.html" class="back-btn">⬅ Back to Main</a>
+  <a href="index.html" class="back-btn">⬅ Back to Main</a>
 <h2 align="center">Shredder – Electricity Emission</h2>
 
 <div class="chart-container" id="container">
   <canvas id="chart"></canvas>
 </div>
+
 <script>
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
+
 const ctx = document.getElementById("chart").getContext("2d");
 
 const chart = new Chart(ctx, {
@@ -64,95 +61,72 @@ const chart = new Chart(ctx, {
         tension: 0.3
       },
       {
-        label: "Average",
+        label: "Average Emission",
         data: [],
         borderDash: [5,5],
         borderColor: "blue",
         pointRadius: 0
       },
       {
-        label: "Peak",
+        label: "Peak Emission",
         data: [],
         borderDash: [2,2],
         borderColor: "purple",
         pointRadius: 0
       }
     ]
-  },
-  options: {
-    responsive: true,
-    scales: {
-      x: {
-        type: "time",
-        time: {
-          unit: "hour",
-          tooltipFormat: "yyyy-MM-dd HH:mm"
-        },
-        ticks: {
-          autoSkip: true,
-          maxTicksLimit: 10
-        },
-        title: {
-          display: true,
-          text: "Time"
-        }
-      },
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: "CO₂ Emission (mg)"
-        }
-      }
-    }
   }
 });
 function updateCharts() {
+
   fetch(API_URL)
     .then(res => res.json())
     .then(res => {
-      const raw = res.data || [];
+      console.log("Shredder API data:", res.data);
 
-      // ✅ remove invalid timestamps
-      const data = raw.filter(d => d.hour);
+      const data = res.data || [];
 
-      if (data.length === 0) return;
+      // 🔥 Convert kg → grams (IMPORTANT)
+      const values = data.map(d => d.shredding_carbon * 1000000);
 
-      const values = data.map(d => d.shredding_carbon * 1_000_000);
+      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
+      const peak = Math.max(...values, 0);
 
-      const avg = values.reduce((a,b)=>a+b,0) / values.length;
-      const peak = Math.max(...values);
-
-      chart.data.labels = data.map(d =>
-        new Date(d.hour.replace(" ", "T") + ":00Z")
-      );
-
+      chart.data.labels = data.map(d => d.hour);
       chart.data.datasets[0].data = values;
-      chart.data.datasets[1].data = values.map(() => avg);
-      chart.data.datasets[2].data = values.map(() => peak);
+      chart.data.datasets[1].data = values.map(()=>avg);
+      chart.data.datasets[2].data = values.map(()=>peak);
 
+      // COLOR + GLOW LOGIC
       let color = "green";
-      if (peak > 2000) color = "red";
-      else if (peak > 1000) color = "orange";
+      if (peak > 2) color = "red";
+      else if (peak > 1) color = "orange";
 
       chart.data.datasets[0].borderColor = color;
       document.getElementById("container")
         ?.classList.toggle("glow", color === "red");
 
-      chart.options.scales.y.max = peak * 1.3;
-      chart.update();
-    })
-    .catch(err => console.error("API Error:", err));
-}
+      // 🔥 FIX FLAT LINE
+      chart.options.scales = {
+        y: {
+          min: 0,
+          max: peak * 1.3
+        }
+      };
 
+      chart.update();
+    });
+}
 
 updateCharts();
 setInterval(updateCharts, 60000);
+
+
+
+
 </script>
-
-
 </body>
-</html>
+</html>  make changes and tell the final code 
 
 
 

@@ -61,38 +61,45 @@ const chart = new Chart(ctx, {
 });
 
 function updateCharts(){
- fetch(API_URL).then(r=>r.json()).then(res=>{
-    console.log("Heat API data:", res.data);
-   const data=res.data||[];
-   const values=data.map(d=>d.heat_carbon);
-   const avg=values.reduce((a,b)=>a+b,0)/values.length||0;
-   const peak=Math.max(...values,0);
+ fetch(API_URL)
+   .then(r => r.json())
+   .then(res => {
+     console.log("Heat API data:", res.data);
 
-   chart.data.labels=data.map(d=>d.hour);
-   chart.data.datasets[0].data=values;
-   chart.data.datasets[1].data=values.map(()=>avg);
-   chart.data.datasets[2].data=values.map(()=>peak);
+     const data = res.data || [];
 
-   let color="green";
-   if(peak>2) color="red";
-   else if(peak>1) color="orange";
+     // Convert kg → grams
+     const values = data.map(d => d.heat_carbon * 1000);
 
-   chart.data.datasets[0].borderColor=color;
-   document.getElementById("container").classList.toggle("glow",color==="red");
-const maxVal = Math.max(...values, 0.001);
+     const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
+     const peak = Math.max(...values, 0);
 
-chart.options.scales.y.max = maxVal * 1.2; // 20% headroom
-chart.options.scales.y.min = 0;
+     chart.data.labels = data.map(d => d.hour);
+     chart.data.datasets[0].data = values;
+     chart.data.datasets[1].data = values.map(()=>avg);
+     chart.data.datasets[2].data = values.map(()=>peak);
 
-   chart.update();
- });
+     let color = "green";
+     if (peak > 2) color = "red";
+     else if (peak > 1) color = "orange";
+
+     chart.data.datasets[0].borderColor = color;
+     document.getElementById("container").classList.toggle("glow", color==="red");
+
+     chart.options.scales.y.min = 0;
+     chart.options.scales.y.max = peak * 1.3;
+
+     chart.update();
+   });
 }
+
 
 updateCharts();
 setInterval(updateCharts,60000);
 </script>
 </body>
 </html>
+
 
 
 

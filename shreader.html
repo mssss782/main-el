@@ -84,11 +84,17 @@ const chart = new Chart(ctx, {
     responsive: true,
     scales: {
       x: {
-        type: "time",
-        time: {
-          unit: "hour",
-          displayFormats: { hour: "HH:mm" }
-        },
+  type: "time",
+  time: {
+    unit: "hour",
+    stepSize: 1,
+    tooltipFormat: "yyyy-MM-dd HH:mm"
+  },
+  ticks: {
+    autoSkip: true,
+    maxTicksLimit: 10
+  }
+}
         title: {
           display: true,
           text: "Time"
@@ -121,8 +127,8 @@ function updateCharts() {
 
       // Time labels
       chart.data.labels = data.map(d =>
-        new Date(d.hour.replace(" ", "T"))
-      );
+  new Date(d.hour.replace(" ", "T") + ":00Z")
+);
 
       chart.data.datasets[0].data = values;
       chart.data.datasets[1].data = values.map(()=>avg);
@@ -151,6 +157,7 @@ setInterval(updateCharts, 60000);
 
 </body>
 </html>
+
 
 
 

@@ -1,72 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>Pressure CO₂ - Pressure Process</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+<meta charset="utf-8">
+<title>Pressure CO₂</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
 <style>
-  body{font-family:Poppins;background:#f4f4f4;padding:30px}
-  .chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px}
-  .back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
-  #suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
+body{font-family:Poppins;background:#f4f4f4;padding:30px}
+.chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px}
+.back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
+#suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
 </style>
 </head>
+
 <body>
-  <a class="back-btn" href="index.html">⬅ Back</a>
-  <h2 align="center">Pressure CO₂ (mg)</h2>
-  <div id="suggestion"></div>
-  <div class="chart-container" id="container"><canvas id="chart"></canvas></div>
+<a class="back-btn" href="index.html">⬅ Back</a>
+<h2 align="center">Pressure Process – CO₂ (mg)</h2>
+<div id="suggestion"></div>
+
+<div class="chart-container">
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
-const CHANNEL_ID="3204458", READ_API_KEY="KAH4AJHZ9UA48ZRJ", FIELD="field4";
-const SAFE=1, WARNING=5; // mg thresholds for pressure
 
-function showSuggestion(level,msg){ const b=document.getElementById("suggestion"); b.style.display="block"; if(level==="red"){b.style.background="#ffe5e5";b.style.border="2px solid red";b.style.color="#b00020"} else if(level==="yellow"){b.style.background="#fff4cc";b.style.border="2px solid orange";b.style.color="#8a6d00"} else {b.style.background="#e6f4ea";b.style.border="2px solid green";b.style.color="#1e7e34"} b.innerText=msg; }
+const CHANNEL_ID="3204458";
+const READ_API_KEY="KAH4AJHZ9UA48ZRJ";
+const FIELD="field4"; // pressure
+const SAFE=1, WARNING=5;
 
-const ctx=document.getElementById("chart").getContext("2d");
-const chart=new Chart(ctx,{type:"line",data:{labels:[],datasets:[
-  {label:"Pressure CO₂ (mg)",data:[],borderWidth:3,tension:0.35,pointRadius:0,borderColor:"green"},
+function show(level,msg){
+ const b=document.getElementById("suggestion");
+ b.style.display="block";
+ b.style.background=level==="red"?"#ffe5e5":level==="yellow"?"#fff4cc":"#e6f4ea";
+ b.style.border="2px solid "+(level==="red"?"red":level==="yellow"?"orange":"green");
+ b.style.color=level==="red"?"#b00020":level==="yellow"?"#8a6d00":"#1e7e34";
+ b.innerText=msg;
+}
+
+const chart=new Chart(document.getElementById("chart"),{
+ type:"line",
+ data:{labels:[],datasets:[
+  {
+   label:"Pressure CO₂ (mg)",
+   data:[],
+   borderColor:"green",
+   borderWidth:3,
+   tension:.35,
+   pointRadius:3,
+   pointHoverRadius:6
+  },
   {label:"Average",data:[],borderDash:[5,5],borderColor:"blue",pointRadius:0},
   {label:"Peak",data:[],borderDash:[2,2],borderColor:"purple",pointRadius:0}
-]},options:{responsive:true,scales:{y:{beginAtZero:true,title:{display:true,text:"mg CO₂"}}},plugins:{annotation:{annotations:{
-  greenZone:{type:"box",yMin:0,yMax:SAFE,backgroundColor:"rgba(0,200,0,0.12)",borderWidth:0},
-  yellowZone:{type:"box",yMin:SAFE,yMax:WARNING,backgroundColor:"rgba(255,165,0,0.12)",borderWidth:0},
-  redZone:{type:"box",yMin:WARNING,yMax:"max",backgroundColor:"rgba(255,0,0,0.12)",borderWidth:0}
-}}}}});
+ ]},
+ options:{
+  scales:{y:{beginAtZero:true,title:{display:true,text:"mg CO₂"}}},
+  plugins:{annotation:{annotations:{
+   green:{type:"box",yMin:0,yMax:SAFE,backgroundColor:"rgba(0,200,0,.12)"},
+   yellow:{type:"box",yMin:SAFE,yMax:WARNING,backgroundColor:"rgba(255,165,0,.12)"},
+   red:{type:"box",yMin:WARNING,yMax:"max",backgroundColor:"rgba(255,0,0,.12)"}
+  }}}
+ }
+});
 
 async function update(){
-  try{
-    const url=`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/4.json?api_key=${READ_API_KEY}&results=60`;
-    const r=await fetch(url); const json=await r.json();
-    const feeds=Array.isArray(json.feeds)?json.feeds:[];
+ const res=await fetch(`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/4.json?api_key=${READ_API_KEY}&results=60`);
+ const j=await res.json();
+ const f=j.feeds||[];
 
-    const values=feeds.map(f=>{ const v=parseFloat(f[FIELD]); return Number.isFinite(v)? v*1_000_000 : 0; });
-    const labels=feeds.map(f=> f.created_at ? new Date(f.created_at).toLocaleTimeString() : "");
+ const v=f.map(x=>parseFloat(x[FIELD])*1_000_000||0);
+ const t=f.map(x=>new Date(x.created_at).toLocaleTimeString());
 
-    console.log("Pressure — parsed (mg):", values.slice(-20));
-    if(values.length===0) return;
+ if(!v.length) return;
 
-    const avg=values.reduce((a,b)=>a+b,0)/values.length;
-    const peak=Math.max(...values);
+ const avg=v.reduce((a,b)=>a+b,0)/v.length;
+ const peak=Math.max(...v);
 
-    if(peak>WARNING) showSuggestion("red","⚠️ High pressure emission detected.");
-    else if(peak>SAFE) showSuggestion("yellow","⚠️ Pressure emission above normal.");
-    else showSuggestion("green","✅ Pressure process running efficiently.");
+ if(peak>WARNING) show("red","⚠ High pressure emission");
+ else if(peak>SAFE) show("yellow","⚠ Pressure above normal");
+ else show("green","✅ Pressure stable");
 
-    document.getElementById("container").classList.toggle("glow", peak>WARNING);
-
-    chart.data.labels=labels;
-    chart.data.datasets[0].data=values;
-    chart.data.datasets[1].data=values.map(()=>avg);
-    chart.data.datasets[2].data=values.map(()=>peak);
-    chart.options.scales.y.max = Math.max(peak*2, 1); // ensure tiny values are visible
-    chart.update();
-  }catch(e){ console.error(e); }
+ chart.data.labels=t;
+ chart.data.datasets[0].data=v;
+ chart.data.datasets[1].data=v.map(()=>avg);
+ chart.data.datasets[2].data=v.map(()=>peak);
+ chart.options.scales.y.max=Math.max(peak*2,1);
+ chart.update();
 }
-update(); setInterval(update,60000);
+
+update();
+setInterval(update,60000);
 </script>
 </body>
 </html>

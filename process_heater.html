@@ -4,220 +4,115 @@
 <title>Heat Carbon Footprint</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-<!-- Chart.js v4 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-
-<!-- Annotation Plugin (v3 – REQUIRED for Chart.js v4) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
 <style>
-body {
-  font-family: Poppins;
-  background:#f4f4f4;
-  padding:30px;
-}
-
-.chart-container {
-  width: 80%;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 20px;
-  transition: box-shadow 0.3s;
-}
-
-.glow {
-  box-shadow: 0 0 25px red;
-}
-
-.back-btn {
-  display: inline-block;
-  margin: 10px 0 20px 10%;
-  padding: 10px 18px;
-  background-color: #2D6A4F;
-  color: white;
-  text-decoration: none;
-  font-weight: 600;
-  border-radius: 8px;
-}
-
-.suggestion-box {
-  display: none;
-  width: 80%;
-  margin: 20px auto;
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
-  font-weight: 600;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
+body { font-family: Poppins; background:#f4f4f4; padding:30px; }
+.chart-container { width: 80%; margin:auto; background:white; padding:20px; border-radius:20px; transition: box-shadow 0.3s; }
+.glow { box-shadow: 0 0 25px red; }
+.back-btn { display:inline-block; margin:10px 0 20px 10%; padding:10px 18px; background-color:#2D6A4F; color:white; text-decoration:none; font-weight:600; border-radius:8px; }
+.back-btn:hover { background-color:#1b4332; transform:translateX(-3px); }
+#suggestion-box { display:none; width:80%; margin:20px auto; padding:15px; border-radius:12px; text-align:center; font-weight:600; box-shadow:0 4px 6px rgba(0,0,0,0.1); }
 </style>
 </head>
-
 <body>
 
-<a href="index.html" class="back-btn">⬅ Back</a>
+<a href="index.html" class="back-btn">⬅ Back to Main</a>
 <h2 align="center">Heating Process – Thermal Emission</h2>
-
-<div id="suggestion-box" class="suggestion-box"></div>
-
-<div class="chart-container" id="container">
-  <canvas id="chart"></canvas>
-</div>
+<div id="suggestion-box"></div>
+<div class="chart-container" id="container"><canvas id="chart"></canvas></div>
 
 <script>
-/* ================= REGISTER PLUGIN ================= */
 Chart.register(window['chartjs-plugin-annotation']);
 
-/* ================= CONFIG ================= */
-const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/minute";
-const SAFE_LIMIT = 900;     // mg
-const WARNING_LIMIT = 2000; // mg
+const CHANNEL_ID = "3204458"; // Your ThingSpeak channel ID
+const READ_API_KEY = "KAH4AJHZ9UA48ZRJ"; // Use your read API key if needed
+const SAFE_LIMIT = 900;    // mg CO2
+const WARNING_LIMIT = 2000;
 
-/* ================= SUGGESTION FUNCTION ================= */
-function showSuggestion(level, message) {
+// Suggestion box function
+function showSuggestion(level, message){
   const box = document.getElementById("suggestion-box");
   box.style.display = "block";
-
-  if (level === "red") {
-    box.style.background = "#ffe5e5";
-    box.style.border = "2px solid red";
-    box.style.color = "#b00020";
-  } else if (level === "yellow") {
-    box.style.background = "#fff4cc";
-    box.style.border = "2px solid orange";
-    box.style.color = "#8a6d00";
-  } else {
-    box.style.background = "#e6f4ea";
-    box.style.border = "2px solid green";
-    box.style.color = "#1e7e34";
-  }
-
+  if(level==="red"){ box.style.background="#ffe5e5"; box.style.border="2px solid red"; box.style.color="#b00020"; }
+  else if(level==="yellow"){ box.style.background="#fff4cc"; box.style.border="2px solid orange"; box.style.color="#8a6d00"; }
+  else{ box.style.background="#e6f4ea"; box.style.border="2px solid green"; box.style.color="#1e7e34"; }
   box.innerText = message;
 }
 
-/* ================= CHART ================= */
+// Chart setup
 const ctx = document.getElementById("chart").getContext("2d");
-
-const chart = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: "Heat Emission (mg CO₂)",
-        data: [],
-        borderWidth: 3,
-        tension: 0.35,
-        pointRadius: 0,
-        segment: {
-          borderColor: ctx => {
-            const y = ctx.p1.parsed.y;
-            if (y > WARNING_LIMIT) return "red";
-            if (y > SAFE_LIMIT) return "orange";
-            return "green";
-          }
-        }
+const chart = new Chart(ctx,{
+  type:"line",
+  data:{
+    labels:[],
+    datasets:[
+      { label:"Heat Emission (mg CO₂)", data:[], borderWidth:3, tension:0.35, pointRadius:0,
+        segment:{ borderColor: ctx => {
+          const y = ctx.p1.parsed.y;
+          if(y>WARNING_LIMIT) return "red";
+          if(y>SAFE_LIMIT) return "orange";
+          return "green";
+        }}
       },
-      {
-        label: "Average Emission",
-        data: [],
-        borderDash: [5,5],
-        borderColor: "blue",
-        pointRadius: 0
-      },
-      {
-        label: "Peak Emission",
-        data: [],
-        borderDash: [2,2],
-        borderColor: "purple",
-        pointRadius: 0
-      }
+      { label:"Average", data:[], borderDash:[5,5], borderColor:"blue", pointRadius:0 },
+      { label:"Peak", data:[], borderDash:[2,2], borderColor:"purple", pointRadius:0 }
     ]
   },
-  options: {
-    responsive: true,
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: "mg CO₂" }
-      }
-    },
-    plugins: {
-      annotation: {
-        annotations: {
-          greenZone: {
-            type: "box",
-            yMin: 0,
-            yMax: SAFE_LIMIT,
-            backgroundColor: "rgba(0,200,0,0.15)",
-            borderWidth: 0
-          },
-          yellowZone: {
-            type: "box",
-            yMin: SAFE_LIMIT,
-            yMax: WARNING_LIMIT,
-            backgroundColor: "rgba(255,165,0,0.18)",
-            borderWidth: 0
-          },
-          redZone: {
-            type: "box",
-            yMin: WARNING_LIMIT,
-            yMax: "max",
-            backgroundColor: "rgba(255,0,0,0.15)",
-            borderWidth: 0
-          }
+  options:{
+    responsive:true,
+    scales:{ y:{ beginAtZero:true, title:{display:true,text:"mg CO₂"} } },
+    plugins:{
+      annotation:{
+        annotations:{
+          greenZone:{ type:"box", yMin:0, yMax:SAFE_LIMIT, backgroundColor:"rgba(0,200,0,0.15)", borderWidth:0 },
+          yellowZone:{ type:"box", yMin:SAFE_LIMIT, yMax:WARNING_LIMIT, backgroundColor:"rgba(255,165,0,0.18)", borderWidth:0 },
+          redZone:{ type:"box", yMin:WARNING_LIMIT, yMax:"max", backgroundColor:"rgba(255,0,0,0.15)", borderWidth:0 }
         }
       }
     }
   }
 });
 
-/* ================= UPDATE FUNCTION ================= */
-function updateCharts() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(res => {
-      const data = res.data || [];
-      const values = data.map(d => d.heating_carbon_mg);
+// Fetch ThingSpeak data
+async function updateCharts(){
+  const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=30`;
+  const res = await fetch(url);
+  const json = await res.json();
+  const feeds = json.feeds;
 
-      if (!values.length) return;
+  const values = feeds.map(f => parseFloat(f.field2)*1000 || 0); // Convert kg → mg
+  const times = feeds.map(f => f.field1);
 
-      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
-      const peak = Math.max(...values, 0);
+  if(values.length===0) return;
 
-      // Suggestions
-      if (peak > WARNING_LIMIT) {
-        showSuggestion("red", "⚠️ High thermal emission detected. Check heater control, insulation, sensors and airflow.");
-      } else if (peak > SAFE_LIMIT) {
-        showSuggestion("yellow", "⚠️ Emission above normal. Monitor temperature and recalibrate heater.");
-      } else {
-        showSuggestion("green", "✅ Heating process running efficiently.");
-      }
+  const avg = values.reduce((a,b)=>a+b,0)/values.length;
+  const peak = Math.max(...values);
 
-      // Glow effect
-      document.getElementById("container").classList.toggle("glow", peak > WARNING_LIMIT);
+  // Suggestion
+  if(peak>WARNING_LIMIT) showSuggestion("red","⚠️ High thermal emission detected.");
+  else if(peak>SAFE_LIMIT) showSuggestion("yellow","⚠️ Emission above normal.");
+  else showSuggestion("green","✅ Heating process running efficiently.");
 
-      // Update Chart
-      chart.data.labels = data.map(d => d.minute);
-      chart.data.datasets[0].data = values;
-      chart.data.datasets[1].data = values.map(() => avg); // Average line
-      chart.data.datasets[2].data = values.map(() => peak); // Peak line
-      chart.options.scales.y.max = peak * 1.2;
+  document.getElementById("container").classList.toggle("glow", peak>WARNING_LIMIT);
 
-      chart.update();
-    })
-    .catch(err => console.error("API Error:", err));
+  chart.data.labels = times;
+  chart.data.datasets[0].data = values;
+  chart.data.datasets[1].data = values.map(()=>avg);
+  chart.data.datasets[2].data = values.map(()=>peak);
+  chart.options.scales.y.max = peak*1.2;
+  chart.update();
 }
 
-/* ================= RUN ================= */
+// Initial fetch & refresh every minute
 updateCharts();
-setInterval(updateCharts, 60000);
+setInterval(updateCharts,60000);
 </script>
 
 </body>
 </html>
+
 
 
 

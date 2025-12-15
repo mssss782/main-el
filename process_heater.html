@@ -171,6 +171,9 @@ function updateCharts(){
 
      // kg → grams
      const values = data.map(d => d.heating_carbon * 1000);
+     const hasRed = values.some(v => v > 2);
+document.getElementById("container").classList.toggle("glow", hasRed);
+
 
      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
      const peak = Math.max(...values, 0);
@@ -208,7 +211,14 @@ else {
      if (peak > WARNING_LIMIT) color = "red";
      else if (peak > SAFE_LIMIT) color = "orange";
 
-     chart.data.datasets[0].borderColor = color;
+     chart.data.datasets[0].borderColor = function(ctx) {
+  const value = ctx.parsed.y;
+
+  if (value > 2) return "red";        // 🔴 Red zone
+  if (value > 1) return "orange";     // 🟡 Yellow zone
+  return "green";                     // 🟢 Safe zone
+};
+
      document.getElementById("container")
        .classList.toggle("glow", color==="red");
 
@@ -226,6 +236,7 @@ setInterval(updateCharts,60000); // every 1 minute
 
 </body>
 </html>
+
 
 
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Heat Carbon Footprint</title>
+<title>Carbon Footprint – Heating Graph</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,9 +26,9 @@ body { font-family: Poppins; background:#f4f4f4; padding:30px; }
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
 
-const CHANNEL_ID = "3204458"; // Your ThingSpeak channel ID
-const READ_API_KEY = "KAH4AJHZ9UA48ZRJ"; // Use your read API key if needed
-const SAFE_LIMIT = 900;    // mg CO2
+const CHANNEL_ID = "3204458"; // ThingSpeak channel
+const READ_API_KEY = "KAH4AJHZ9UA48ZRJ"; // ThingSpeak read API
+const SAFE_LIMIT = 900;    // mg CO₂
 const WARNING_LIMIT = 2000;
 
 // Suggestion box function
@@ -48,14 +48,9 @@ const chart = new Chart(ctx,{
   data:{
     labels:[],
     datasets:[
-      { label:"Heat Emission (mg CO₂)", data:[], borderWidth:3, tension:0.35, pointRadius:0,
-        segment:{ borderColor: ctx => {
-          const y = ctx.p1.parsed.y;
-          if(y>WARNING_LIMIT) return "red";
-          if(y>SAFE_LIMIT) return "orange";
-          return "green";
-        }}
-      },
+      { label:"Heat CO₂ (mg)", data:[], borderWidth:3, tension:0.35, pointRadius:0, borderColor:"red" },
+      { label:"Shredding CO₂ (mg)", data:[], borderWidth:3, tension:0.35, pointRadius:0, borderColor:"orange" },
+      { label:"Pressure CO₂ (mg)", data:[], borderWidth:3, tension:0.35, pointRadius:0, borderColor:"green" },
       { label:"Average", data:[], borderDash:[5,5], borderColor:"blue", pointRadius:0 },
       { label:"Peak", data:[], borderDash:[2,2], borderColor:"purple", pointRadius:0 }
     ]
@@ -77,18 +72,21 @@ const chart = new Chart(ctx,{
 
 // Fetch ThingSpeak data
 async function updateCharts(){
-  const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=30`;
+  const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=30`;
   const res = await fetch(url);
   const json = await res.json();
   const feeds = json.feeds;
 
-  const values = feeds.map(f => parseFloat(f.field2)*1000 || 0); // Convert kg → mg
-  const times = feeds.map(f => f.field1);
+  if(!feeds || feeds.length===0) return;
 
-  if(values.length===0) return;
+  const heatValues = feeds.map(f => parseFloat(f.field2)*1_000_000 || 0); // Heat CO2 kg→mg
+  const shredValues = feeds.map(f => parseFloat(f.field3)*1_000_000 || 0); // Shredding
+  const pressureValues = feeds.map(f => parseFloat(f.field4)*1_000_000 || 0); // Pressure
+  const times = feeds.map(f => f.created_at);
 
-  const avg = values.reduce((a,b)=>a+b,0)/values.length;
-  const peak = Math.max(...values);
+  const allValues = heatValues.concat(shredValues, pressureValues);
+  const avg = allValues.reduce((a,b)=>a+b,0)/allValues.length;
+  const peak = Math.max(...allValues);
 
   // Suggestion
   if(peak>WARNING_LIMIT) showSuggestion("red","⚠️ High thermal emission detected.");
@@ -98,9 +96,11 @@ async function updateCharts(){
   document.getElementById("container").classList.toggle("glow", peak>WARNING_LIMIT);
 
   chart.data.labels = times;
-  chart.data.datasets[0].data = values;
-  chart.data.datasets[1].data = values.map(()=>avg);
-  chart.data.datasets[2].data = values.map(()=>peak);
+  chart.data.datasets[0].data = heatValues;
+  chart.data.datasets[1].data = shredValues;
+  chart.data.datasets[2].data = pressureValues;
+  chart.data.datasets[3].data = Array(times.length).fill(avg);
+  chart.data.datasets[4].data = Array(times.length).fill(peak);
   chart.options.scales.y.max = peak*1.2;
   chart.update();
 }
@@ -112,6 +112,7 @@ setInterval(updateCharts,60000);
 
 </body>
 </html>
+
 
 
 

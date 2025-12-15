@@ -1,253 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Shredder Carbon Footprint</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <meta charset="utf-8" />
+  <title>Shredding CO₂ - Shredder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-
   <style>
-    body {
-      font-family: Poppins;
-      background: #f4f4f4;
-      padding: 30px;
-    }
-
-    .chart-container {
-      width: 80%;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      transition: box-shadow 0.3s;
-    }
-
-    /* Added Suggestion Box Styling */
-    .suggestion-box {
-      display: none; /* Hidden by default */
-      width: 80%;
-      margin: 20px auto;
-      padding: 15px;
-      border-radius: 12px;
-      text-align: center;
-      font-weight: 600;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    .glow {
-      box-shadow: 0 0 25px red;
-    }
-
-    .back-btn {
-      display: inline-block;
-      margin: 10px 0 20px 10%;
-      padding: 10px 18px;
-      background-color: #2D6A4F;
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: background 0.3s, transform 0.2s;
-    }
-
-    .back-btn:hover {
-      background-color: #1b4332;
-      transform: translateX(-3px);
-    }
+    body{font-family:Poppins;background:#f4f4f4;padding:30px}
+    .chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px;transition:box-shadow .3s}
+    .glow{box-shadow:0 0 25px red}
+    .back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
+    #suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
   </style>
 </head>
-
 <body>
-
-<a href="index.html" class="back-btn">⬅ Back to Main</a>
-<h2 align="center">Shredder – Electricity Emission</h2>
-
-<div id="suggestion-box" class="suggestion-box"></div>
-
-<div class="chart-container" id="container">
-  <canvas id="chart"></canvas>
-</div>
+  <a class="back-btn" href="index.html">⬅ Back</a>
+  <h2 align="center">Shredding CO₂ (mg)</h2>
+  <div id="suggestion"></div>
+  <div class="chart-container" id="container"><canvas id="chart"></canvas></div>
 
 <script>
-/* ================= CONFIG ================= */
+Chart.register(window['chartjs-plugin-annotation']);
+const CHANNEL_ID="3204458", READ_API_KEY="KAH4AJHZ9UA48ZRJ", FIELD="field3";
+const SAFE_LIMIT=50, WARNING_LIMIT=200; // adjust for shredding scale
 
-const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/minute";
+function showSuggestion(level,msg){ const b=document.getElementById("suggestion"); b.style.display="block"; if(level==="red"){b.style.background="#ffe5e5";b.style.border="2px solid red";b.style.color="#b00020"} else if(level==="yellow"){b.style.background="#fff4cc";b.style.border="2px solid orange";b.style.color="#8a6d00"} else {b.style.background="#e6f4ea";b.style.border="2px solid green";b.style.color="#1e7e34"} b.innerText=msg; }
 
-// Emission limits (mg CO₂)
-const SAFE_LIMIT = 1;
-const WARNING_LIMIT = 2;
+const ctx=document.getElementById("chart").getContext("2d");
+const chart=new Chart(ctx,{type:"line",data:{labels:[],datasets:[{label:"Shredding CO₂ (mg)",data:[],borderWidth:3,tension:0.35,pointRadius:0,borderColor:"orange"},{label:"Average",data:[],borderDash:[5,5],borderColor:"blue",pointRadius:0},{label:"Peak",data:[],borderDash:[2,2],borderColor:"purple",pointRadius:0}]},options:{responsive:true,scales:{y:{beginAtZero:true,title:{display:true,text:"mg CO₂"}}},plugins:{annotation:{annotations:{greenZone:{type:"box",yMin:0,yMax:SAFE_LIMIT,backgroundColor:"rgba(0,200,0,0.12)",borderWidth:0},yellowZone:{type:"box",yMin:SAFE_LIMIT,yMax:WARNING_LIMIT,backgroundColor:"rgba(255,165,0,0.12)",borderWidth:0},redZone:{type:"box",yMin:WARNING_LIMIT,yMax:"max",backgroundColor:"rgba(255,0,0,0.12)",borderWidth:0}}}}}});
 
-/* ================= SUGGESTION FUNCTION ================= */
-
-function showSuggestion(level, message) {
-  const box = document.getElementById("suggestion-box");
-  box.style.display = "block";
-
-  if (level === "red") {
-    box.style.background = "#ffe5e5";
-    box.style.border = "2px solid red";
-    box.style.color = "#b00020";
-  } else if (level === "yellow") {
-    box.style.background = "#fff4cc";
-    box.style.border = "2px solid orange";
-    box.style.color = "#8a6d00";
-  } else {
-    box.style.background = "#e6f4ea";
-    box.style.border = "2px solid green";
-    box.style.color = "#1e7e34";
-  }
-
-  box.innerText = message;
+async function update(){
+  try{
+    const url=`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/3.json?api_key=${READ_API_KEY}&results=60`;
+    const r=await fetch(url); const json=await r.json(); console.log("ThingSpeak raw:",json);
+    const feeds = Array.isArray(json.feeds)?json.feeds:[];
+    const values = feeds.map(f => { const v=parseFloat(f[FIELD]); return Number.isFinite(v)? v*1_000_000:0; });
+    const labels = feeds.map(f => f.created_at || "");
+    if(values.length===0) return;
+    const avg=values.reduce((a,b)=>a+b,0)/values.length; const peak=Math.max(...values);
+    if(peak>WARNING_LIMIT) showSuggestion("red","⚠️ High shredding emission detected.");
+    else if(peak>SAFE_LIMIT) showSuggestion("yellow","⚠️ Shredding emission above normal.");
+    else showSuggestion("green","✅ Shredder running efficiently.");
+    document.getElementById("container").classList.toggle("glow", peak>WARNING_LIMIT);
+    chart.data.labels=labels; chart.data.datasets[0].data=values; chart.data.datasets[1].data=values.map(()=>avg); chart.data.datasets[2].data=values.map(()=>peak);
+    chart.options.scales.y.max = Math.max(peak*1.2, WARNING_LIMIT*1.1); chart.update();
+  }catch(e){ console.error(e); }
 }
-
-/* ================= CHART ================= */
-
-const ctx = document.getElementById("chart").getContext("2d");
-
-const chart = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: "Shredding Emission (mg CO₂)",
-        data: [],
-        borderWidth: 2,
-        tension: 0.3,
-        // Added segment coloring for dynamic line color
-        segment: {
-          borderColor: ctx => {
-            const y = ctx.p1.parsed.y;
-            if (y > WARNING_LIMIT) return "red";
-            if (y > SAFE_LIMIT) return "orange";
-            return "green";
-          }
-        }
-      },
-      {
-        label: "Average Emission",
-        data: [],
-        borderDash: [5,5],
-        borderColor: "blue",
-        pointRadius: 0
-      },
-      {
-        label: "Peak Emission",
-        data: [],
-        borderDash: [2,2],
-        borderColor: "purple",
-        pointRadius: 0
-      }
-    ]
-  },
-  options: {
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: "mg CO₂" }
-      }
-    },
-    plugins: {
-      annotation: {
-        annotations: {
-          greenZone: {
-            type: 'box',
-            yMin: 0,
-            yMax: SAFE_LIMIT,
-            backgroundColor: 'rgba(0, 200, 0, 0.15)',
-            borderWidth: 0 // Added for cleaner background
-          },
-          yellowZone: {
-            type: 'box',
-            yMin: SAFE_LIMIT,
-            yMax: WARNING_LIMIT,
-            backgroundColor: 'rgba(255, 165, 0, 0.18)',
-            borderWidth: 0 // Added for cleaner background
-          },
-          redZone: {
-            type: 'box',
-            yMin: WARNING_LIMIT,
-            // RECTIFIED: Use 'max' to ensure it covers the top of the chart
-            yMax: 'max', 
-            backgroundColor: 'rgba(255, 0, 0, 0.15)',
-            borderWidth: 0 // Added for cleaner background
-          }
-        }
-      }
-    }
-  }
-});
-
-/* ================= UPDATE FUNCTION ================= */
-
-function updateCharts() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(res => {
-
-      const data = res.data || [];
-
-      // Convert kg → mg
-      const values = data.map(d => d.shredding_carbon_mg);
-
-      if (values.length === 0) return;
-
-      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
-      const peak = Math.max(...values, 0);
-
-      /* --- NEW LOGIC: SHOW SUGGESTION --- */
-      if (peak > WARNING_LIMIT) {
-        showSuggestion("red",
-          "⚠️ Critical: High motor load. Check for material jams, blade dullness, or overfeeding of the shredder."
-        );
-      } else if (peak > SAFE_LIMIT) {
-        showSuggestion("yellow",
-          "⚠️ Warning: Energy usage elevated. Inspect motor lubrication and belt tension."
-        );
-      } else {
-        showSuggestion("green",
-          "✅ Shredder operating efficiently within standard parameters."
-        );
-      }
-
-      /* COLOR + GLOW LOGIC */
-      // Glow if any value is in the red zone
-      const hasRed = values.some(v => v > WARNING_LIMIT);
-      
-      document
-        .getElementById("container")
-        .classList.toggle("glow", hasRed);
-
-      // Update Chart Data
-      chart.data.labels = data.map(d => d.minute);
-      chart.data.datasets[0].data = values;
-      chart.data.datasets[1].data = values.map(() => avg);
-      chart.data.datasets[2].data = values.map(() => peak);
-
-      chart.options.scales.y.max = peak * 1.3;
-
-      chart.update();
-    })
-    .catch(err => console.error("API Error:", err));
-}
-
-/* ================= RUN ================= */
-
-updateCharts();
-setInterval(updateCharts, 60000); // every 1 min
+update(); setInterval(update,60000);
 </script>
-
 </body>
 </html>
-
-
-
-
-
-
-
-
-

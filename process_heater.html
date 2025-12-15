@@ -94,7 +94,132 @@ function showSuggestion(level, message) {
     box.style.color = "#1e7e34";
   }
 
-  box.inne
+  box.innerText = message;
+}
+
+/* ================= CHART ================= */
+const ctx = document.getElementById("chart").getContext("2d");
+
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: "Heat Emission (mg CO₂)",
+        data: [],
+        borderWidth: 3,
+        tension: 0.35,
+        pointRadius: 0,
+        segment: {
+          borderColor: ctx => {
+            const y = ctx.p1.parsed.y;
+            if (y > WARNING_LIMIT) return "red";
+            if (y > SAFE_LIMIT) return "orange";
+            return "green";
+          }
+        }
+      },
+      {
+        label: "Average Emission",
+        data: [],
+        borderDash: [5,5],
+        borderColor: "blue",
+        pointRadius: 0
+      },
+      {
+        label: "Peak Emission",
+        data: [],
+        borderDash: [2,2],
+        borderColor: "purple",
+        pointRadius: 0
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: "mg CO₂" }
+      }
+    },
+    plugins: {
+      annotation: {
+        annotations: {
+          greenZone: {
+            type: "box",
+            yMin: 0,
+            yMax: SAFE_LIMIT,
+            backgroundColor: "rgba(0,200,0,0.15)",
+            borderWidth: 0
+          },
+          yellowZone: {
+            type: "box",
+            yMin: SAFE_LIMIT,
+            yMax: WARNING_LIMIT,
+            backgroundColor: "rgba(255,165,0,0.18)",
+            borderWidth: 0
+          },
+          redZone: {
+            type: "box",
+            yMin: WARNING_LIMIT,
+            yMax: "max",
+            backgroundColor: "rgba(255,0,0,0.15)",
+            borderWidth: 0
+          }
+        }
+      }
+    }
+  }
+});
+
+/* ================= UPDATE FUNCTION ================= */
+function updateCharts() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(res => {
+      const data = res.data || [];
+      const values = data.map(d => d.heating_carbon_mg);
+
+      if (!values.length) return;
+
+      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
+      const peak = Math.max(...values, 0);
+
+      // Suggestions
+      if (peak > WARNING_LIMIT) {
+        showSuggestion("red", "⚠️ High thermal emission detected. Check heater control, insulation, sensors and airflow.");
+      } else if (peak > SAFE_LIMIT) {
+        showSuggestion("yellow", "⚠️ Emission above normal. Monitor temperature and recalibrate heater.");
+      } else {
+        showSuggestion("green", "✅ Heating process running efficiently.");
+      }
+
+      // Glow effect
+      document.getElementById("container").classList.toggle("glow", peak > WARNING_LIMIT);
+
+      // Update Chart
+      chart.data.labels = data.map(d => d.minute);
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[1].data = values.map(() => avg); // Average line
+      chart.data.datasets[2].data = values.map(() => peak); // Peak line
+      chart.options.scales.y.max = peak * 1.2;
+
+      chart.update();
+    })
+    .catch(err => console.error("API Error:", err));
+}
+
+/* ================= RUN ================= */
+updateCharts();
+setInterval(updateCharts, 60000);
+</script>
+
+</body>
+</html>
+
+
 
 
 

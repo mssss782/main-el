@@ -158,7 +158,7 @@ const chart = new Chart(ctx, {
           redZone: {
             type: "box",
             yMin: WARNING_LIMIT,
-            yMax: max,
+            yMax: "max",
             backgroundColor: "rgba(255,0,0,0.15)"
           }
         }
@@ -223,6 +223,7 @@ setInterval(updateCharts, 60000); // every 1 minute
 
 </body>
 </html>
+
 
 
 

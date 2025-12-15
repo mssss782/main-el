@@ -177,7 +177,7 @@ function updateCharts() {
       const data = res.data || [];
 
       // kg → grams
-      const values = data.map(d => d.heating_carbon * 1000);
+      const values = data.map(d => d.heating_carbon );
 
       if (values.length === 0) return;
 
@@ -223,6 +223,7 @@ setInterval(updateCharts, 60000); // every 1 minute
 
 </body>
 </html>
+
 
 
 

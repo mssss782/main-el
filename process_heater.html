@@ -1,101 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>Heat CO₂ - Heating Process</title>
+<meta charset="utf-8">
+<title>Heating CO₂</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
 <style>
-  body{font-family:Poppins;background:#f4f4f4;padding:30px}
-  .chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px;transition:box-shadow .3s}
-  .glow{box-shadow:0 0 25px red}
-  .back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
-  #suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
+body{font-family:Poppins;background:#f4f4f4;padding:30px}
+.chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px}
+.back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
+#suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
 </style>
 </head>
+
 <body>
-  <a class="back-btn" href="index.html">⬅ Back</a>
-  <h2 align="center">Heat CO₂ (Heating) — mg</h2>
-  <div id="suggestion"></div>
-  <div class="chart-container" id="container"><canvas id="chart"></canvas></div>
+<a class="back-btn" href="index.html">⬅ Back</a>
+<h2 align="center">Heating Process – Heat CO₂ (mg)</h2>
+<div id="suggestion"></div>
+
+<div class="chart-container">
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
 
-const CHANNEL_ID = "3204458";
-const READ_API_KEY = "KAH4AJHZ9UA48ZRJ";
-const FIELD = "field2"; // heating
-const SAFE_LIMIT = 900;    // mg
-const WARNING_LIMIT = 2000;
+const CHANNEL_ID="3204458";
+const READ_API_KEY="KAH4AJHZ9UA48ZRJ";
+const FIELD="field2"; // heating
+const SAFE=900, WARNING=2000;
 
-function showSuggestion(level, msg){
-  const box = document.getElementById("suggestion"); box.style.display = "block";
-  if(level==="red"){ box.style.background="#ffe5e5"; box.style.border="2px solid red"; box.style.color="#b00020"; }
-  else if(level==="yellow"){ box.style.background="#fff4cc"; box.style.border="2px solid orange"; box.style.color="#8a6d00"; }
-  else { box.style.background="#e6f4ea"; box.style.border="2px solid green"; box.style.color="#1e7e34"; }
-  box.innerText = msg;
+function show(level,msg){
+  const b=document.getElementById("suggestion");
+  b.style.display="block";
+  b.style.background=level==="red"?"#ffe5e5":level==="yellow"?"#fff4cc":"#e6f4ea";
+  b.style.border="2px solid "+(level==="red"?"red":level==="yellow"?"orange":"green");
+  b.style.color=level==="red"?"#b00020":level==="yellow"?"#8a6d00":"#1e7e34";
+  b.innerText=msg;
 }
 
-const ctx = document.getElementById("chart").getContext("2d");
-const chart = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      { label: "Heat CO₂ (mg)", data: [], borderWidth: 3, tension: 0.35, pointRadius:0, borderColor: "red" },
-      { label: "Average", data: [], borderDash:[5,5], borderColor:"blue", pointRadius:0 },
-      { label: "Peak", data: [], borderDash:[2,2], borderColor:"purple", pointRadius:0 }
-    ]
+const chart=new Chart(document.getElementById("chart"),{
+ type:"line",
+ data:{labels:[],datasets:[
+  {
+   label:"Heat CO₂ (mg)",
+   data:[],
+   borderColor:"red",
+   borderWidth:3,
+   tension:.35,
+   pointRadius:3,
+   pointHoverRadius:6
   },
-  options: {
-    responsive:true,
-    scales:{ y:{ beginAtZero:true, title:{display:true, text:"mg CO₂"} } },
-    plugins:{ annotation:{ annotations:{
-      greenZone:{ type:"box", yMin:0, yMax:SAFE_LIMIT, backgroundColor:"rgba(0,200,0,0.12)", borderWidth:0 },
-      yellowZone:{ type:"box", yMin:SAFE_LIMIT, yMax:WARNING_LIMIT, backgroundColor:"rgba(255,165,0,0.12)", borderWidth:0 },
-      redZone:{ type:"box", yMin:WARNING_LIMIT, yMax:"max", backgroundColor:"rgba(255,0,0,0.12)", borderWidth:0 }
-    } } }
-  }
+  {label:"Average",data:[],borderDash:[5,5],borderColor:"blue",pointRadius:0},
+  {label:"Peak",data:[],borderDash:[2,2],borderColor:"purple",pointRadius:0}
+ ]},
+ options:{
+  scales:{y:{beginAtZero:true,title:{display:true,text:"mg CO₂"}}},
+  plugins:{annotation:{annotations:{
+   green:{type:"box",yMin:0,yMax:SAFE,backgroundColor:"rgba(0,200,0,.12)"},
+   yellow:{type:"box",yMin:SAFE,yMax:WARNING,backgroundColor:"rgba(255,165,0,.12)"},
+   red:{type:"box",yMin:WARNING,yMax:"max",backgroundColor:"rgba(255,0,0,.12)"}
+  }}}
+ }
 });
 
 async function update(){
-  try {
-    const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=60`;
-    const res = await fetch(url); const json = await res.json();
-    const feeds = Array.isArray(json.feeds) ? json.feeds : [];
+ const res=await fetch(`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=60`);
+ const j=await res.json();
+ const f=j.feeds||[];
 
-    const values = feeds.map(f => {
-      const v = parseFloat(f[FIELD]);
-      return Number.isFinite(v) ? v * 1_000_000 : 0; // kg -> mg
-    });
-    const labels = feeds.map(f => f.created_at ? new Date(f.created_at).toLocaleTimeString() : "");
+ const v=f.map(x=>parseFloat(x[FIELD])*1_000_000||0);
+ const t=f.map(x=>new Date(x.created_at).toLocaleTimeString());
 
-    console.log("Heat — parsed values (mg):", values.slice(-20));
-    if(values.length === 0) return;
+ if(!v.length) return;
 
-    const avg = values.reduce((a,b)=>a+b,0)/values.length;
-    const peak = Math.max(...values);
+ const avg=v.reduce((a,b)=>a+b,0)/v.length;
+ const peak=Math.max(...v);
 
-    if(peak > WARNING_LIMIT) showSuggestion("red","⚠️ High heating emission — investigate heater/insulation.");
-    else if(peak > SAFE_LIMIT) showSuggestion("yellow","⚠️ Heating emission above normal — monitor system.");
-    else showSuggestion("green","✅ Heating process running efficiently.");
+ if(peak>WARNING) show("red","⚠ High heating emission");
+ else if(peak>SAFE) show("yellow","⚠ Heating above normal");
+ else show("green","✅ Heating running efficiently");
 
-    document.getElementById("container").classList.toggle("glow", peak > WARNING_LIMIT);
-
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = values;
-    chart.data.datasets[1].data = values.map(()=>avg);
-    chart.data.datasets[2].data = values.map(()=>peak);
-    chart.options.scales.y.max = Math.max(peak*1.2, WARNING_LIMIT * 1.1);
-    chart.update();
-  } catch(e){
-    console.error("Fetch error:", e);
-  }
+ chart.data.labels=t;
+ chart.data.datasets[0].data=v;
+ chart.data.datasets[1].data=v.map(()=>avg);
+ chart.data.datasets[2].data=v.map(()=>peak);
+ chart.options.scales.y.max=Math.max(peak*1.2,WARNING);
+ chart.update();
 }
 
 update();
-setInterval(update, 60000);
+setInterval(update,60000);
 </script>
 </body>
 </html>

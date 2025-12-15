@@ -177,7 +177,7 @@ function updateCharts() {
       const data = res.data || [];
 
       // kg → grams
-      const values = data.map(d => d.heating_carbon );
+      const values = data.map(d => d.heating_carbon_mg);
 
       if (values.length === 0) return;
 
@@ -204,7 +204,7 @@ function updateCharts() {
       document.getElementById("container").classList.toggle("glow", hasRed);
 
       // Update chart
-      chart.data.labels = data.map(d => d.hour);
+      chart.data.labels = data.map(d => d.minute);
       chart.data.datasets[0].data = values;
       chart.data.datasets[1].data = values.map(() => avg);
       chart.data.datasets[2].data = values.map(() => peak);
@@ -223,6 +223,7 @@ setInterval(updateCharts, 60000); // every 1 minute
 
 </body>
 </html>
+
 
 
 

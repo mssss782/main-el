@@ -376,7 +376,7 @@ function updateCharts() {
 
       // kg → milligrams conversion
 
-      const values = data.map(d => d.pressure_carbon );
+      const values = data.map(d => d.pressure_carbon_mg);
 
 
 
@@ -432,7 +432,7 @@ function updateCharts() {
 
       // Update Chart Data
 
-      chart.data.labels = data.map(d => d.hour);
+      chart.data.labels = data.map(d => d.minute);
 
       chart.data.datasets[0].data = values;
 
@@ -471,6 +471,7 @@ setInterval(updateCharts, 60000); // every 1 minute
 </body>
 
 </html>
+
 
 
 

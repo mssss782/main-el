@@ -5,17 +5,15 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Annotation Plugin (for background zones) -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
 
 <style>
 body {
   font-family: Poppins;
-  background:#f4f4f4;
-  padding:30px;
+  background: #f4f4f4;
+  padding: 30px;
 }
 
 .chart-container {
@@ -25,6 +23,18 @@ body {
   padding: 20px;
   border-radius: 20px;
   transition: box-shadow 0.3s;
+}
+
+/* Base style for the suggestion box */
+.suggestion-box {
+  display: none; /* Hidden by default */
+  width: 80%;
+  margin: 20px auto;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .glow {
@@ -55,178 +65,177 @@ body {
 <a href="index.html" class="back-btn">⬅ Back to Main</a>
 <h2 align="center">Pressure Process – Mechanical Emission</h2>
 
+<div id="suggestion-box" class="suggestion-box"></div>
+
 <div class="chart-container" id="container">
   <canvas id="chart"></canvas>
 </div>
 
 <script>
 /* ================= CONFIG ================= */
+
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
 
 // Pressure emission limits (milligrams CO₂)
-const SAFE_LIMIT = 400;   // mg CO2/hr => safe
-const WARNING_LIMIT = 800; // mg CO2/hr => warning
+const SAFE_LIMIT = 400;
+const WARNING_LIMIT = 800;
 
-/* ================= ensure suggestion box exists ================= */
-function ensureSuggestionBox() {
-  let box = document.getElementById('suggestion-box');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'suggestion-box';
-    box.style.cssText = 'margin:20px auto;width:80%;padding:12px;border-radius:10px;font-weight:600;display:none;';
-    const container = document.querySelector('.chart-container') || document.body;
-    container.parentNode.insertBefore(box, container); // place above chart-container
-  }
-  return box;
-}
+/* ================= SUGGESTION FUNCTION (ADDED) ================= */
 
 function showSuggestion(level, message) {
-  const box = ensureSuggestionBox();
-  box.style.display = 'block';
-  if (level === 'red') {
-    box.style.background = '#ffe5e5';
-    box.style.color = '#b00020';
-    box.style.border = '2px solid red';
-  } else if (level === 'yellow') {
-    box.style.background = '#fff4cc';
-    box.style.color = '#8a6d00';
-    box.style.border = '2px solid orange';
+  const box = document.getElementById("suggestion-box");
+  box.style.display = "block";
+
+  if (level === "red") {
+    box.style.background = "#ffe5e5";
+    box.style.border = "2px solid red";
+    box.style.color = "#b00020";
+  } else if (level === "yellow") {
+    box.style.background = "#fff4cc";
+    box.style.border = "2px solid orange";
+    box.style.color = "#8a6d00";
   } else {
-    box.style.background = '#e6f4ea';
-    box.style.color = '#1e7e34';
-    box.style.border = '2px solid green';
+    box.style.background = "#e6f4ea";
+    box.style.border = "2px solid green";
+    box.style.color = "#1e7e34";
   }
+
   box.innerText = message;
 }
 
 /* ================= CHART ================= */
+
 const ctx = document.getElementById("chart").getContext("2d");
 
-const chart = new Chart(ctx,{
-  type:"line",
-  data:{
-    labels:[],
-    datasets:[
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
       {
-        label:"Pressure Emission (mg CO₂)",
-        data:[],
-        borderWidth:2,
+        label: "Pressure Emission (mg CO₂)",
+        data: [],
+        borderWidth: 2,
         tension: 0.4,
-        fill:false,
-        // per-segment coloring (OPTION 1)
+        // Optional: Add segment coloring like sample code
         segment: {
           borderColor: ctx => {
-            // use p1 (the point at the end of the segment) so color reflects the latest value on that segment
-            const y = ctx.p1?.parsed?.y ?? 0;
+            const y = ctx.p1.parsed.y;
             if (y > WARNING_LIMIT) return "red";
             if (y > SAFE_LIMIT) return "orange";
-            return "green";
+            return "green"; // Default color
           }
         }
       },
       {
-        label:"Average",
-        data:[],
-        borderDash:[5,5],
-        borderColor:"blue",
-        pointRadius:0
+        label: "Average",
+        data: [],
+        borderDash: [5, 5],
+        borderColor: "blue",
+        pointRadius: 0
       },
       {
-        label:"Peak",
-        data:[],
-        borderDash:[2,2],
-        borderColor:"purple",
-        pointRadius:0
+        label: "Peak",
+        data: [],
+        borderDash: [2, 2],
+        borderColor: "purple",
+        pointRadius: 0
       }
     ]
   },
-  options:{
-    responsive:true,
-    scales:{
-      y:{
-        beginAtZero:true,
-        title: { display: true, text: "mg CO₂ / hour" }
+  options: {
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: "mg CO₂" }
       }
     },
     plugins: {
-      legend: { display: true }
+      annotation: {
+        annotations: {
+          greenZone: {
+            type: 'box',
+            yMin: 0,
+            yMax: SAFE_LIMIT,
+            backgroundColor: 'rgba(0, 200, 0, 0.15)'
+          },
+          yellowZone: {
+            type: 'box',
+            yMin: SAFE_LIMIT,
+            yMax: WARNING_LIMIT,
+            backgroundColor: 'rgba(255, 165, 0, 0.18)'
+          },
+          redZone: {
+            type: 'box',
+            yMin: WARNING_LIMIT,
+            yMax: 2000, // Arbitrary high max
+            backgroundColor: 'rgba(255, 0, 0, 0.15)'
+          }
+        }
+      }
     }
   }
 });
 
 /* ================= UPDATE FUNCTION ================= */
-function updateCharts(){
+
+function updateCharts() {
   fetch(API_URL)
-  .then(r => r.json())
-  .then(res => {
-    const raw = res.data || [];
+    .then(r => r.json())
+    .then(res => {
 
-    // convert and sanitize: kg -> mg  (1 kg = 1,000,000 mg)
-    const data = raw.filter(d => d && d.hasOwnProperty('pressure_carbon'));
-    const values = data.map(d => {
-      const n = Number(d.pressure_carbon);
-      return isNaN(n) ? NaN : n * 1_000_000;
-    }).filter(v => !isNaN(v));
+      const data = res.data || [];
 
-    // if no valid values, clear chart and exit
-    if (values.length === 0) {
-      chart.data.labels = [];
-      chart.data.datasets[0].data = [];
+      // kg → milligrams conversion
+      const values = data.map(d => d.pressure_carbon * 1_000_000);
+
+      if (values.length === 0) return;
+
+      const avg = values.reduce((a, b) => a + b, 0) / (values.length || 1);
+      const peak = Math.max(...values, 0);
+
+      /* --- NEW LOGIC: SHOW SUGGESTION BOX --- */
+      if (peak > WARNING_LIMIT) {
+        showSuggestion("red",
+          "⚠️ Critical: High mechanical emission detected. Check compressor efficiency, pneumatic system leaks, and clogged filters."
+        );
+      } else if (peak > SAFE_LIMIT) {
+        showSuggestion("yellow",
+          "⚠️ Warning: Pressure emission rising. Inspect air lines for minor leaks and verify compressor load cycle."
+        );
+      } else {
+        showSuggestion("green",
+          "✅ Pressure system operating efficiently within standard limits."
+        );
+      }
+
+      /* COLOR + GLOW LOGIC */
+      // Glow effect on container if Red
+      const hasRed = values.some(v => v > WARNING_LIMIT);
+      document.getElementById("container").classList.toggle("glow", hasRed);
+
+      // Update Chart Data
+      chart.data.labels = data.map(d => d.hour);
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[1].data = values.map(() => avg);
+      chart.data.datasets[2].data = values.map(() => peak);
+
+      chart.options.scales.y.max = peak * 1.3;
+
       chart.update();
-      return;
-    }
-
-    const avg = values.reduce((a,b)=>a+b,0) / values.length;
-    const peak = Math.max(...values);
-
-    // prepare labels (use hour string as-is; if you prefer date objects convert similarly)
-    chart.data.labels = data.map(d => d.hour ?? '');
-
-    // set dataset values
-    chart.data.datasets[0].data = values;
-    chart.data.datasets[1].data = values.map(()=>avg);
-    chart.data.datasets[2].data = values.map(()=>peak);
-
-    // show suggestion based on peak (we keep suggestions triggered by peak)
-    if (peak > WARNING_LIMIT) {
-      showSuggestion(
-        "red",
-        "⚠️ High pressure emission detected. Inspect hydraulic lines, seals/valves for leaks, check mould alignment and reduce excessive pressure."
-      );
-    } else if (peak > SAFE_LIMIT) {
-      showSuggestion(
-        "yellow",
-        "⚠️ Pressure slightly high. Monitor hydraulic system and inspect for early leaks or valve wear."
-      );
-    } else {
-      showSuggestion(
-        "green",
-        "✅ Pressure process within normal emission limits."
-      );
-    }
-
-    // glow if any red values
-    const hasRed = values.some(v => v > WARNING_LIMIT);
-    document.getElementById("container").classList.toggle("glow", hasRed);
-
-    // dynamic y-max (give 20% headroom)
-    chart.options.scales.y.max = peak * 1.3 || (SAFE_LIMIT * 2);
-
-    chart.update();
-  })
-  .catch(err => {
-    console.error("Pressure API Error:", err);
-  });
+    })
+    .catch(err => console.error("API Error:", err));
 }
 
 /* ================= RUN ================= */
+
 updateCharts();
 setInterval(updateCharts, 60000); // every 1 minute
 </script>
 
-
 </body>
 </html>
+
 
 
 

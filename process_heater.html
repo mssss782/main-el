@@ -31,7 +31,7 @@ Chart.register(window['chartjs-plugin-annotation']);
 const CHANNEL_ID="3204458";
 const READ_API_KEY="KAH4AJHZ9UA48ZRJ";
 const FIELD="field2"; // heating
-const SAFE=900, WARNING=2000;
+const SAFE=150, WARNING=190;
 
 function show(level,msg){
   const b=document.getElementById("suggestion");
@@ -97,3 +97,4 @@ setInterval(update,60000);
 </script>
 </body>
 </html>
+

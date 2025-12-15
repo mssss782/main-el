@@ -41,38 +41,41 @@ body {
   font-weight: 600;
   border-radius: 8px;
 }
+
+.suggestion-box {
+  display: none;
+  width: 80%;
+  margin: 20px auto;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
 </style>
 </head>
 
 <body>
 
-<!-- Suggestion Box -->
-<div id="suggestion-box"
-     style="margin:20px auto;width:80%;padding:15px;border-radius:12px;
-            font-weight:600;display:none;">
-</div>
-
 <a href="index.html" class="back-btn">⬅ Back</a>
 <h2 align="center">Heating Process – Thermal Emission</h2>
+
+<div id="suggestion-box" class="suggestion-box"></div>
 
 <div class="chart-container" id="container">
   <canvas id="chart"></canvas>
 </div>
 
 <script>
-/* ================= REGISTER PLUGIN (CRITICAL) ================= */
+/* ================= REGISTER PLUGIN ================= */
 Chart.register(window['chartjs-plugin-annotation']);
 
 /* ================= CONFIG ================= */
-
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/minute";
+const SAFE_LIMIT = 900;     // mg
+const WARNING_LIMIT = 2000; // mg
 
-// Thresholds in mg
-const SAFE_LIMIT = 900;
-const WARNING_LIMIT = 2000;
-
-/* ================= SUGGESTION ================= */
-
+/* ================= SUGGESTION FUNCTION ================= */
 function showSuggestion(level, message) {
   const box = document.getElementById("suggestion-box");
   box.style.display = "block";
@@ -91,126 +94,8 @@ function showSuggestion(level, message) {
     box.style.color = "#1e7e34";
   }
 
-  box.innerText = message;
-}
+  box.inne
 
-/* ================= CHART ================= */
-
-const ctx = document.getElementById("chart").getContext("2d");
-
-const chart = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: "Heat Emission (mg CO₂)",
-        data: [],
-        borderWidth: 3,
-        tension: 0.35,
-        pointRadius: 0,
-
-        /* LINE COLOR BASED ON VALUE */
-        segment: {
-          borderColor: ctx => {
-            const y = ctx.p1.parsed.y;
-            if (y > WARNING_LIMIT) return "red";
-            if (y > SAFE_LIMIT) return "orange";
-            return "green";
-          }
-        }
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: "mg CO₂" }
-      }
-    },
-    plugins: {
-      annotation: {
-        annotations: {
-          greenZone: {
-            type: "box",
-            yMin: 0,
-            yMax: SAFE_LIMIT,
-            backgroundColor: "rgba(0,200,0,0.15)",
-            borderWidth: 0
-          },
-          yellowZone: {
-            type: "box",
-            yMin: SAFE_LIMIT,
-            yMax: WARNING_LIMIT,
-            backgroundColor: "rgba(255,165,0,0.18)",
-            borderWidth: 0
-          },
-          redZone: {
-            type: "box",
-            yMin: WARNING_LIMIT,
-            yMax: "max",
-            backgroundColor: "rgba(255,0,0,0.15)",
-            borderWidth: 0
-          }
-        }
-      }
-    }
-  }
-});
-
-/* ================= UPDATE FUNCTION ================= */
-
-function updateCharts() {
-  fetch(API_URL)
-    .then(r => r.json())
-    .then(res => {
-
-      const data = res.data || [];
-      const values = data.map(d => d.heating_carbon_mg);
-
-      if (!values.length) return;
-
-      const peak = Math.max(...values);
-
-      // Suggestions
-      if (peak > WARNING_LIMIT) {
-        showSuggestion("red",
-          "⚠️ High thermal emission detected. Check heater control, insulation, sensors and airflow."
-        );
-      } else if (peak > SAFE_LIMIT) {
-        showSuggestion("yellow",
-          "⚠️ Emission above normal. Monitor temperature and recalibrate heater."
-        );
-      } else {
-        showSuggestion("green",
-          "✅ Heating process running efficiently."
-        );
-      }
-
-      // Glow effect
-      document.getElementById("container")
-        .classList.toggle("glow", peak > WARNING_LIMIT);
-
-      // Update chart
-      chart.data.labels = data.map(d => d.minute);
-      chart.data.datasets[0].data = values;
-      chart.options.scales.y.max = peak * 1.2;
-
-      chart.update();
-    })
-    .catch(err => console.error("API Error:", err));
-}
-
-/* ================= RUN ================= */
-
-updateCharts();
-setInterval(updateCharts, 60000);
-</script>
-
-</body>
-</html>
 
 
 

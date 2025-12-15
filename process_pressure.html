@@ -1,245 +1,475 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
-  <title>Shredder Carbon Footprint</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<title>Pressure Carbon Footprint</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
-  <style>
-    body {
-      font-family: Poppins;
-      background: #f4f4f4;
-      padding: 30px;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-    .chart-container {
-      width: 80%;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      transition: box-shadow 0.3s;
-    }
 
-    /* Added Suggestion Box Styling */
-    .suggestion-box {
-      display: none; /* Hidden by default */
-      width: 80%;
-      margin: 20px auto;
-      padding: 15px;
-      border-radius: 12px;
-      text-align: center;
-      font-weight: 600;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
 
-    .glow {
-      box-shadow: 0 0 25px red;
-    }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .back-btn {
-      display: inline-block;
-      margin: 10px 0 20px 10%;
-      padding: 10px 18px;
-      background-color: #2D6A4F;
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: background 0.3s, transform 0.2s;
-    }
 
-    .back-btn:hover {
-      background-color: #1b4332;
-      transform: translateX(-3px);
-    }
-  </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+
+
+
+<style>
+
+body {
+
+  font-family: Poppins;
+
+  background: #f4f4f4;
+
+  padding: 30px;
+
+}
+
+
+
+.chart-container {
+
+  width: 80%;
+
+  margin: auto;
+
+  background: white;
+
+  padding: 20px;
+
+  border-radius: 20px;
+
+  transition: box-shadow 0.3s;
+
+}
+
+
+
+/* Base style for the suggestion box */
+
+.suggestion-box {
+
+  display: none; /* Hidden by default */
+
+  width: 80%;
+
+  margin: 20px auto;
+
+  padding: 15px;
+
+  border-radius: 12px;
+
+  text-align: center;
+
+  font-weight: 600;
+
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+}
+
+
+
+.glow {
+
+  box-shadow: 0 0 25px red;
+
+}
+
+
+
+.back-btn {
+
+  display: inline-block;
+
+  margin: 10px 0 20px 10%;
+
+  padding: 10px 18px;
+
+  background-color: #2D6A4F;
+
+  color: white;
+
+  text-decoration: none;
+
+  font-weight: 600;
+
+  border-radius: 8px;
+
+  transition: background 0.3s, transform 0.2s;
+
+}
+
+
+
+.back-btn:hover {
+
+  background-color: #1b4332;
+
+  transform: translateX(-3px);
+
+}
+
+</style>
+
 </head>
+
+
 
 <body>
 
+
+
 <a href="index.html" class="back-btn">⬅ Back to Main</a>
-<h2 align="center">Shredder – Electricity Emission</h2>
+
+<h2 align="center">Pressure Process – Mechanical Emission</h2>
+
+
 
 <div id="suggestion-box" class="suggestion-box"></div>
 
+
+
 <div class="chart-container" id="container">
+
   <canvas id="chart"></canvas>
+
 </div>
 
+
+
 <script>
+
 /* ================= CONFIG ================= */
+
+
 
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/minute";
 
-// Emission limits (mg CO₂)
-const SAFE_LIMIT = 1;
-const WARNING_LIMIT = 2;
 
-/* ================= SUGGESTION FUNCTION ================= */
+
+// Pressure emission limits (milligrams CO₂)
+
+const SAFE_LIMIT = 400;
+
+const WARNING_LIMIT = 800;
+
+
+
+/* ================= SUGGESTION FUNCTION (ADDED) ================= */
+
+
 
 function showSuggestion(level, message) {
+
   const box = document.getElementById("suggestion-box");
+
   box.style.display = "block";
 
+
+
   if (level === "red") {
+
     box.style.background = "#ffe5e5";
+
     box.style.border = "2px solid red";
+
     box.style.color = "#b00020";
+
   } else if (level === "yellow") {
+
     box.style.background = "#fff4cc";
+
     box.style.border = "2px solid orange";
+
     box.style.color = "#8a6d00";
+
   } else {
+
     box.style.background = "#e6f4ea";
+
     box.style.border = "2px solid green";
+
     box.style.color = "#1e7e34";
+
   }
 
+
+
   box.innerText = message;
+
 }
+
+
 
 /* ================= CHART ================= */
 
+
+
 const ctx = document.getElementById("chart").getContext("2d");
 
+
+
 const chart = new Chart(ctx, {
+
   type: "line",
+
   data: {
+
     labels: [],
+
     datasets: [
+
       {
-        label: "Shredding Emission (mg CO₂)",
+
+        label: "Pressure Emission (mg CO₂)",
+
         data: [],
+
         borderWidth: 2,
-        tension: 0.3,
-        // Added segment coloring for dynamic line color
+
+        tension: 0.4,
+
+        // Optional: Add segment coloring like sample code
+
         segment: {
+
           borderColor: ctx => {
+
             const y = ctx.p1.parsed.y;
+
             if (y > WARNING_LIMIT) return "red";
+
             if (y > SAFE_LIMIT) return "orange";
-            return "green";
+
+            return "green"; // Default color
+
           }
+
         }
+
       },
+
       {
-        label: "Average Emission",
+
+        label: "Average",
+
         data: [],
-        borderDash: [5,5],
+
+        borderDash: [5, 5],
+
         borderColor: "blue",
+
         pointRadius: 0
+
       },
+
       {
-        label: "Peak Emission",
+
+        label: "Peak",
+
         data: [],
-        borderDash: [2,2],
+
+        borderDash: [2, 2],
+
         borderColor: "purple",
+
         pointRadius: 0
+
       }
+
     ]
+
   },
+
   options: {
+
     scales: {
+
       y: {
+
         beginAtZero: true,
+
         title: { display: true, text: "mg CO₂" }
+
       }
+
     },
+
     plugins: {
+
       annotation: {
+
         annotations: {
+
           greenZone: {
+
             type: 'box',
+
             yMin: 0,
+
             yMax: SAFE_LIMIT,
-            backgroundColor: 'rgba(0, 200, 0, 0.15)',
-            borderWidth: 0 // Cleaner look
+
+            backgroundColor: 'rgba(0, 200, 0, 0.15)'
+
           },
+
           yellowZone: {
+
             type: 'box',
+
             yMin: SAFE_LIMIT,
+
             yMax: WARNING_LIMIT,
-            backgroundColor: 'rgba(255, 165, 0, 0.18)',
-            borderWidth: 0 // Cleaner look
+
+            backgroundColor: 'rgba(255, 165, 0, 0.18)'
+
           },
+
           redZone: {
+
             type: 'box',
+
             yMin: WARNING_LIMIT,
-            yMax: 'max', // Use 'max' to cover the whole top
-            backgroundColor: 'rgba(255, 0, 0, 0.15)',
-            borderWidth: 0 // Cleaner look
+
+            yMax: 2000, // Arbitrary high max
+
+            backgroundColor: 'rgba(255, 0, 0, 0.15)'
+
           }
+
         }
+
       }
+
     }
+
   }
+
 });
+
+
 
 /* ================= UPDATE FUNCTION ================= */
 
+
+
 function updateCharts() {
+
   fetch(API_URL)
-    .then(res => res.json())
+
+    .then(r => r.json())
+
     .then(res => {
+
+
 
       const data = res.data || [];
 
-      // Convert kg → mg
-      const values = data.map(d => d.shredding_carbon * 1_000_000);
+
+
+      // kg → milligrams conversion
+
+      const values = data.map(d => d.pressure_carbon * 1_000_000);
+
+
 
       if (values.length === 0) return;
 
-      const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
+
+
+      const avg = values.reduce((a, b) => a + b, 0) / (values.length || 1);
+
       const peak = Math.max(...values, 0);
 
-      /* --- NEW LOGIC: SHOW SUGGESTION --- */
+
+
+      /* --- NEW LOGIC: SHOW SUGGESTION BOX --- */
+
       if (peak > WARNING_LIMIT) {
+
         showSuggestion("red",
-          "⚠️ Critical: High motor load. Check for material jams, blade dullness, or overfeeding of the shredder."
+
+          "⚠️ Critical: High mechanical emission detected. Check compressor efficiency, pneumatic system leaks, and clogged filters."
+
         );
+
       } else if (peak > SAFE_LIMIT) {
+
         showSuggestion("yellow",
-          "⚠️ Warning: Energy usage elevated. Inspect motor lubrication and belt tension."
+
+          "⚠️ Warning: Pressure emission rising. Inspect air lines for minor leaks and verify compressor load cycle."
+
         );
+
       } else {
+
         showSuggestion("green",
-          "✅ Shredder operating efficiently within standard parameters."
+
+          "✅ Pressure system operating efficiently within standard limits."
+
         );
+
       }
 
+
+
       /* COLOR + GLOW LOGIC */
-      // Glow if any value is in the red zone
+
+      // Glow effect on container if Red
+
       const hasRed = values.some(v => v > WARNING_LIMIT);
-      
-      document
-        .getElementById("container")
-        .classList.toggle("glow", hasRed);
+
+      document.getElementById("container").classList.toggle("glow", hasRed);
+
+
 
       // Update Chart Data
+
       chart.data.labels = data.map(d => d.hour);
+
       chart.data.datasets[0].data = values;
+
       chart.data.datasets[1].data = values.map(() => avg);
+
       chart.data.datasets[2].data = values.map(() => peak);
+
+
 
       chart.options.scales.y.max = peak * 1.3;
 
+
+
       chart.update();
+
     })
+
     .catch(err => console.error("API Error:", err));
+
 }
+
+
 
 /* ================= RUN ================= */
 
+
+
 updateCharts();
-setInterval(updateCharts, 60000); // every 1 min
+
+setInterval(updateCharts, 60000); // every 1 minute
+
 </script>
 
+
+
 </body>
+
 </html>
 
 

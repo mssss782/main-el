@@ -191,7 +191,7 @@ function updateCharts() {
       const data = res.data || [];
 
       // Convert kg → mg
-      const values = data.map(d => d.shredding_carbon * 1_000_000);
+      const values = data.map(d => d.shredding_carbon );
 
       if (values.length === 0) return;
 
@@ -242,6 +242,7 @@ setInterval(updateCharts, 60000); // every 1 min
 
 </body>
 </html>
+
 
 
 

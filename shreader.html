@@ -7,7 +7,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
   <style>
     body {
@@ -157,19 +157,23 @@ const chart = new Chart(ctx, {
             type: 'box',
             yMin: 0,
             yMax: SAFE_LIMIT,
-            backgroundColor: 'rgba(0, 200, 0, 0.15)'
+            backgroundColor: 'rgba(0, 200, 0, 0.15)',
+            borderWidth: 0 // Added for cleaner background
           },
           yellowZone: {
             type: 'box',
             yMin: SAFE_LIMIT,
             yMax: WARNING_LIMIT,
-            backgroundColor: 'rgba(255, 165, 0, 0.18)'
+            backgroundColor: 'rgba(255, 165, 0, 0.18)',
+            borderWidth: 0 // Added for cleaner background
           },
           redZone: {
             type: 'box',
             yMin: WARNING_LIMIT,
-            yMax: 100, // Arbitrary high max
-            backgroundColor: 'rgba(255, 0, 0, 0.15)'
+            // RECTIFIED: Use 'max' to ensure it covers the top of the chart
+            yMax: 'max', 
+            backgroundColor: 'rgba(255, 0, 0, 0.15)',
+            borderWidth: 0 // Added for cleaner background
           }
         }
       }
@@ -238,6 +242,7 @@ setInterval(updateCharts, 60000); // every 1 min
 
 </body>
 </html>
+
 
 
 

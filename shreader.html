@@ -21,53 +21,148 @@
 
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
-const CHANNEL_ID="3204458", READ_API_KEY="KAH4AJHZ9UA48ZRJ", FIELD="field3";
-const SAFE=0.5, WARNING=2; // mg thresholds tuned for small values
 
-function showSuggestion(level,msg){ const b=document.getElementById("suggestion"); b.style.display="block"; if(level==="red"){b.style.background="#ffe5e5";b.style.border="2px solid red";b.style.color="#b00020"} else if(level==="yellow"){b.style.background="#fff4cc";b.style.border="2px solid orange";b.style.color="#8a6d00"} else {b.style.background="#e6f4ea";b.style.border="2px solid green";b.style.color="#1e7e34"} b.innerText=msg; }
+/* ============= CONFIG ============= */
+const CHANNEL_ID = "3204458";
+const READ_API_KEY = "KAH4AJHZ9UA48ZRJ";
+const FIELD = "field3";
+const SAFE = 0.5, WARNING = 2; // mg thresholds tuned for small values
 
+// Choose dot style:
+//   showEveryN = 1 -> dot at every point
+//   showEveryN = 5 -> dot every 5th point (less clutter)
+// You can change this value.
+const showEveryN = 5; // set to 1 to show all dots
+
+/* ============= UI helpers ============= */
+function showSuggestion(level,msg){
+  const b=document.getElementById("suggestion");
+  b.style.display="block";
+  if(level==="red"){ b.style.background="#ffe5e5"; b.style.border="2px solid red"; b.style.color="#b00020"; }
+  else if(level==="yellow"){ b.style.background="#fff4cc"; b.style.border="2px solid orange"; b.style.color="#8a6d00"; }
+  else { b.style.background="#e6f4ea"; b.style.border="2px solid green"; b.style.color="#1e7e34"; }
+  b.innerText = msg;
+}
+
+/* ============= CHART SETUP ============= */
 const ctx=document.getElementById("chart").getContext("2d");
-const chart=new Chart(ctx,{ type:"line", data:{ labels:[], datasets:[
-  {label:"Shredding CO₂ (mg)", data:[], borderWidth:3, tension:0.35, pointRadius:0, borderColor:"orange"},
-  {label:"Average", data:[], borderDash:[5,5], borderColor:"blue", pointRadius:0},
-  {label:"Peak", data:[], borderDash:[2,2], borderColor:"purple", pointRadius:0}
-]}, options:{ responsive:true, scales:{ y:{ beginAtZero:true, title:{display:true,text:"mg CO₂"} } }, plugins:{ annotation:{ annotations:{
-  greenZone:{ type:"box", yMin:0, yMax:SAFE, backgroundColor:"rgba(0,200,0,0.12)", borderWidth:0 },
-  yellowZone:{ type:"box", yMin:SAFE, yMax:WARNING, backgroundColor:"rgba(255,165,0,0.12)", borderWidth:0 },
-  redZone:{ type:"box", yMin:WARNING, yMax:"max", backgroundColor:"rgba(255,0,0,0.12)", borderWidth:0 }
-}}}}});
+const chart=new Chart(ctx,{
+  type:"line",
+  data:{
+    labels:[],
+    datasets:[
+      {
+        label:"Shredding CO₂ (mg)",
+        data:[],
+        borderWidth:3,
+        tension:0.35,
+        borderColor:"orange",
+        // SCRIPTABLE point radius:
+        // show a dot every N points (controlled by showEveryN)
+        pointRadius: ctx => {
+          // ctx.dataIndex is the index of the point
+          if (showEveryN <= 1) return 3;            // show every point
+          return (ctx.dataIndex % showEveryN === 0) ? 3 : 0; // sparse dots
+        },
+        pointHoverRadius: 6,
+        pointBackgroundColor: "orange",
+        pointBorderColor: "white",
+        pointStyle: "circle"
+      },
+      {
+        label:"Average",
+        data:[],
+        borderDash:[5,5],
+        borderColor:"blue",
+        pointRadius:0
+      },
+      {
+        label:"Peak",
+        data:[],
+        borderDash:[2,2],
+        borderColor:"purple",
+        pointRadius:0
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    scales:{ y:{ beginAtZero:true, title:{display:true, text:"mg CO₂"} } },
+    plugins:{
+      legend: { labels: { usePointStyle: true } },
+      annotation:{
+        annotations:{
+          greenZone:{ type:"box", yMin:0, yMax:SAFE, backgroundColor:"rgba(0,200,0,0.12)", borderWidth:0 },
+          yellowZone:{ type:"box", yMin:SAFE, yMax:WARNING, backgroundColor:"rgba(255,165,0,0.12)", borderWidth:0 },
+          redZone:{ type:"box", yMin:WARNING, yMax:"max", backgroundColor:"rgba(255,0,0,0.12)", borderWidth:0 }
+        }
+      },
+      tooltip: {
+        mode: 'nearest',
+        intersect: false,
+        callbacks: {
+          // format tooltip value to 2 decimals
+          label: ctx => {
+            const v = ctx.parsed.y;
+            return `${ctx.dataset.label}: ${Number(v).toFixed(2)} mg`;
+          }
+        }
+      }
+    },
+    interaction: { mode: 'index', intersect: false }
+  }
+});
 
+/* ============= DATA FETCH + UPDATE ============= */
 async function update(){
   try{
-    const url=`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/3.json?api_key=${READ_API_KEY}&results=60`;
-    const r=await fetch(url); const json=await r.json();
-    const feeds=Array.isArray(json.feeds)?json.feeds:[];
+    const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/3.json?api_key=${READ_API_KEY}&results=120`;
+    const r = await fetch(url);
+    const json = await r.json();
+    const feeds = Array.isArray(json.feeds) ? json.feeds : [];
 
-    const values=feeds.map(f=>{ const v=parseFloat(f[FIELD]); return Number.isFinite(v)? v*1_000_000 : 0; });
-    const labels=feeds.map(f=> f.created_at ? new Date(f.created_at).toLocaleTimeString() : "");
+    // parse and convert kg -> mg
+    const values = feeds.map(f => {
+      const v = parseFloat(f[FIELD]);
+      return Number.isFinite(v) ? v * 1_000_000 : 0;
+    });
 
-    console.log("Shred — parsed (mg):", values.slice(-20));
-    if(values.length===0) return;
+    const labels = feeds.map(f => f.created_at ? new Date(f.created_at).toLocaleTimeString() : "");
 
-    const avg=values.reduce((a,b)=>a+b,0)/values.length;
-    const peak=Math.max(...values);
+    console.log("Shred — parsed (mg):", values.slice(-30));
 
-    if(peak>WARNING) showSuggestion("red","⚠️ High shredding emission detected.");
-    else if(peak>SAFE) showSuggestion("yellow","⚠️ Shredding emission above normal.");
+    if(values.length === 0){
+      return;
+    }
+
+    const avg = values.reduce((a,b)=>a+b,0)/values.length;
+    const peak = Math.max(...values);
+
+    // show suggestion
+    if(peak > WARNING) showSuggestion("red","⚠️ High shredding emission detected.");
+    else if(peak > SAFE) showSuggestion("yellow","⚠️ Shredding emission above normal.");
     else showSuggestion("green","✅ Shredder running efficiently.");
 
-    document.getElementById("container").classList.toggle("glow", peak>WARNING);
+    document.getElementById("container").classList.toggle("glow", peak > WARNING);
 
-    chart.data.labels=labels;
-    chart.data.datasets[0].data=values;
-    chart.data.datasets[1].data=values.map(()=>avg);
-    chart.data.datasets[2].data=values.map(()=>peak);
-    // make sure tiny peaks are visible — at least 1 mg on chart or peak*2 if larger
-    chart.options.scales.y.max = Math.max(peak*2, 1);
+    // set chart data
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    chart.data.datasets[1].data = values.map(()=>avg);
+    chart.data.datasets[2].data = values.map(()=>peak);
+
+    // ensure tiny values are visible: set minimal y.max
+    const minimalMax = 1.0; // 1 mg minimum view range (adjust if you want)
+    chart.options.scales.y.max = Math.max(peak * 2, minimalMax);
+
     chart.update();
-  }catch(e){ console.error(e); }
+  } catch(e){
+    console.error("Fetch error:", e);
+  }
 }
-update(); setInterval(update,60000);
+
+update();
+setInterval(update, 60000);
 </script>
 </body>
 </html>

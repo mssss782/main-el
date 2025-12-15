@@ -5,7 +5,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-<!-- Chart.js -->
+<!-- Chart.js v4 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Annotation Plugin -->
@@ -45,15 +45,10 @@ body {
 </head>
 
 <body>
+
 <div id="suggestion-box"
-     style="
-       margin: 20px auto;
-       width: 80%;
-       padding: 15px;
-       border-radius: 12px;
-       font-weight: 600;
-       display: none;
-     ">
+     style="margin:20px auto;width:80%;padding:15px;border-radius:12px;
+            font-weight:600;display:none;">
 </div>
 
 <a href="index.html" class="back-btn">⬅ Back to Main</a>
@@ -68,36 +63,36 @@ body {
 
 const API_URL = "https://fastapi-carbon-backend.onrender.com/carbon-footprint/hourly";
 
-// Heat emission limits (grams CO₂)
+// Limits (grams CO₂)
 const SAFE_LIMIT = 1;
 const WARNING_LIMIT = 2;
 
-/* ================= CHART ================= */
+/* ================= SUGGESTION ================= */
 
-const ctx = document.getElementById("chart").getContext("2d");
 function showSuggestion(level, message) {
   const box = document.getElementById("suggestion-box");
-
   box.style.display = "block";
 
   if (level === "red") {
     box.style.background = "#ffe5e5";
-    box.style.color = "#b00020";
     box.style.border = "2px solid red";
-  } 
-  else if (level === "yellow") {
+    box.style.color = "#b00020";
+  } else if (level === "yellow") {
     box.style.background = "#fff4cc";
-    box.style.color = "#8a6d00";
     box.style.border = "2px solid orange";
-  } 
-  else {
+    box.style.color = "#8a6d00";
+  } else {
     box.style.background = "#e6f4ea";
-    box.style.color = "#1e7e34";
     box.style.border = "2px solid green";
+    box.style.color = "#1e7e34";
   }
 
   box.innerText = message;
 }
+
+/* ================= CHART ================= */
+
+const ctx = document.getElementById("chart").getContext("2d");
 
 const chart = new Chart(ctx, {
   type: "line",
@@ -107,22 +102,33 @@ const chart = new Chart(ctx, {
       {
         label: "Heat Emission (g CO₂)",
         data: [],
-        borderWidth: 2,
-        tension: 0.3
+        borderWidth: 3,
+        tension: 0.3,
+        fill: false,
+
+        // ⭐ OPTION-1: Per-segment coloring
+        segment: {
+          borderColor: ctx => {
+            const y = ctx.p1.parsed.y;
+            if (y > WARNING_LIMIT) return "red";
+            if (y > SAFE_LIMIT) return "orange";
+            return "green";
+          }
+        }
       },
       {
         label: "Average",
         data: [],
-        borderDash:[5,5],
-        borderColor:"blue",
-        pointRadius:0
+        borderDash: [5,5],
+        borderColor: "blue",
+        pointRadius: 0
       },
       {
         label: "Peak",
         data: [],
-        borderDash:[2,2],
-        borderColor:"purple",
-        pointRadius:0
+        borderDash: [2,2],
+        borderColor: "purple",
+        pointRadius: 0
       }
     ]
   },
@@ -130,29 +136,30 @@ const chart = new Chart(ctx, {
     responsive: true,
     scales: {
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        title: { display: true, text: "g CO₂" }
       }
     },
     plugins: {
       annotation: {
         annotations: {
           greenZone: {
-            type: 'box',
+            type: "box",
             yMin: 0,
             yMax: SAFE_LIMIT,
-            backgroundColor: 'rgba(0, 200, 0, 0.15)'
+            backgroundColor: "rgba(0,200,0,0.15)"
           },
           yellowZone: {
-            type: 'box',
+            type: "box",
             yMin: SAFE_LIMIT,
             yMax: WARNING_LIMIT,
-            backgroundColor: 'rgba(255, 165, 0, 0.18)'
+            backgroundColor: "rgba(255,165,0,0.18)"
           },
           redZone: {
-            type: 'box',
+            type: "box",
             yMin: WARNING_LIMIT,
             yMax: 100,
-            backgroundColor: 'rgba(255, 0, 0, 0.15)'
+            backgroundColor: "rgba(255,0,0,0.15)"
           }
         }
       }
@@ -162,76 +169,62 @@ const chart = new Chart(ctx, {
 
 /* ================= UPDATE FUNCTION ================= */
 
-function updateCharts(){
- fetch(API_URL)
-   .then(r => r.json())
-   .then(res => {
+function updateCharts() {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(res => {
 
-     const data = res.data || [];
+      const data = res.data || [];
 
-     // kg → grams
-     const values = data.map(d => d.heating_carbon * 1000);
-    
+      // kg → grams
+      const values = data.map(d => d.heating_carbon * 1000);
 
+      if (values.length === 0) return;
 
-     const avg = values.reduce((a,b)=>a+b,0) / (values.length || 1);
-     const peak = Math.max(...values, 0);
-// Thresholds (g CO₂)
-const RED_LIMIT = 2;
-const YELLOW_LIMIT = 1;
+      const avg = values.reduce((a,b)=>a+b,0) / values.length;
+      const peak = Math.max(...values);
 
-if (peak > RED_LIMIT) {
-  showSuggestion(
-    "red",
-    "⚠️ High thermal emission detected. Check heater control, insulation quality, temperature sensors. Insulation - Heat leakage from chamber,Damaged insulation material,Open lids or gaps."
-   
-  );
-}
-else if (peak > YELLOW_LIMIT) {
-  showSuggestion(
-    "yellow",
-    "⚠️ Thermal emission above normal. Consider recalibrating temperature settings."
-  );
-}
-else {
-  showSuggestion(
-    "green",
-    "✅ Heating process running efficiently."
-  );
-}
+      // Suggestions
+      if (peak > WARNING_LIMIT) {
+        showSuggestion("red",
+          "⚠️ High thermal emission detected. Check heater control, insulation leakage, temperature sensors, open lids or damaged insulation."
+        );
+      } else if (peak > SAFE_LIMIT) {
+        showSuggestion("yellow",
+          "⚠️ Thermal emission above normal. Recalibrate temperature and monitor heating cycle."
+        );
+      } else {
+        showSuggestion("green",
+          "✅ Heating process running efficiently."
+        );
+      }
 
-     chart.data.labels = data.map(d => d.hour);
-     chart.data.datasets[0].data = values;
-     chart.data.datasets[1].data = values.map(()=>avg);
-     chart.data.datasets[2].data = values.map(()=>peak);
+      // Glow if red exists
+      const hasRed = values.some(v => v > WARNING_LIMIT);
+      document.getElementById("container").classList.toggle("glow", hasRed);
 
-     /* COLOR + GLOW */
-     let color = "green";
-     if (peak > WARNING_LIMIT) color = "red";
-     else if (peak > SAFE_LIMIT) color = "orange";
+      // Update chart
+      chart.data.labels = data.map(d => d.hour);
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[1].data = values.map(() => avg);
+      chart.data.datasets[2].data = values.map(() => peak);
 
-    chart.data.datasets[0].borderColor = color;
-
-    
-    
-
-     document.getElementById("container")
-       .classList.toggle("glow", color==="red");
-
-     chart.options.scales.y.max = peak * 1.3;
-
-     chart.update();
-   });
+      chart.options.scales.y.max = peak * 1.3;
+      chart.update();
+    })
+    .catch(err => console.error("API Error:", err));
 }
 
 /* ================= RUN ================= */
 
 updateCharts();
-setInterval(updateCharts,60000); // every 1 minute
+setInterval(updateCharts, 60000); // every 1 minute
 </script>
 
 </body>
 </html>
+
+
 
 
 

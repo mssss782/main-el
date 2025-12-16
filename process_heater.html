@@ -12,14 +12,27 @@
 body{font-family:Poppins;background:#f4f4f4;padding:30px}
 .chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px}
 .back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
-#suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
+
+#suggestion{
+  display:none;width:80%;margin:20px auto;padding:15px;
+  border-radius:12px;text-align:center;font-weight:600
+}
+
+#machine-alert{
+  display:none;width:80%;margin:15px auto;padding:15px;
+  border-radius:12px;font-weight:600;
+  background:#ffe5e5;border:2px solid red;color:#b00020
+}
 </style>
 </head>
 
 <body>
+
 <a class="back-btn" href="index.html">⬅ Back</a>
 <h2 align="center">Heating Process – Heat CO₂ (mg)</h2>
+
 <div id="suggestion"></div>
+<div id="machine-alert"></div>
 
 <div class="chart-container">
   <canvas id="chart"></canvas>
@@ -30,9 +43,11 @@ Chart.register(window['chartjs-plugin-annotation']);
 
 const CHANNEL_ID="3204458";
 const READ_API_KEY="KAH4AJHZ9UA48ZRJ";
-const FIELD="field2"; // heating
-const SAFE=150, WARNING=190;
+const FIELD="field2";     // heating CO₂
+const SAFE=150;           // green limit
+const WARNING=190;        // 🔴 red limit
 
+/* ---------- MESSAGE HELPERS ---------- */
 function show(level,msg){
   const b=document.getElementById("suggestion");
   b.style.display="block";
@@ -42,6 +57,17 @@ function show(level,msg){
   b.innerText=msg;
 }
 
+function showMachineAlert(msg){
+  const box=document.getElementById("machine-alert");
+  box.style.display="block";
+  box.innerHTML=msg;
+}
+
+function hideMachineAlert(){
+  document.getElementById("machine-alert").style.display="none";
+}
+
+/* ---------- CHART ---------- */
 const chart=new Chart(document.getElementById("chart"),{
  type:"line",
  data:{labels:[],datasets:[
@@ -67,8 +93,11 @@ const chart=new Chart(document.getElementById("chart"),{
  }
 });
 
+/* ---------- DATA UPDATE ---------- */
 async function update(){
- const res=await fetch(`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=60`);
+ const res=await fetch(
+   `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/2.json?api_key=${READ_API_KEY}&results=60`
+ );
  const j=await res.json();
  const f=j.feeds||[];
 
@@ -80,9 +109,24 @@ async function update(){
  const avg=v.reduce((a,b)=>a+b,0)/v.length;
  const peak=Math.max(...v);
 
- if(peak>WARNING) show("red","⚠ High heating emission");
+ /* ----- GENERAL STATUS ----- */
+ if(peak>WARNING) show("red","⚠ High heating emission detected");
  else if(peak>SAFE) show("yellow","⚠ Heating above normal");
  else show("green","✅ Heating running efficiently");
+
+ /* ----- MACHINE DIAGNOSTIC (NEW) ----- */
+ if(peak>WARNING){
+   showMachineAlert(`
+     🔴 <b>Possible Causes – Check These Heating Components:</b><br><br>
+     ✔ Heater coil / heating element<br>
+     ✔ Thermal insulation quality<br>
+     ✔ Thermostat calibration<br>
+     ✔ Power regulation circuitry<br>
+     ✔ Excessive idle heating time
+   `);
+ } else {
+   hideMachineAlert();
+ }
 
  chart.data.labels=t;
  chart.data.datasets[0].data=v;
@@ -97,4 +141,3 @@ setInterval(update,60000);
 </script>
 </body>
 </html>
-

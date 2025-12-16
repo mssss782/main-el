@@ -12,14 +12,27 @@
 body{font-family:Poppins;background:#f4f4f4;padding:30px}
 .chart-container{width:80%;margin:auto;background:#fff;padding:20px;border-radius:20px}
 .back-btn{display:inline-block;margin:10px 0 20px 10%;padding:10px 18px;background:#2D6A4F;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
-#suggestion{display:none;width:80%;margin:20px auto;padding:15px;border-radius:12px;text-align:center;font-weight:600}
+
+#suggestion{
+  display:none;width:80%;margin:20px auto;padding:15px;
+  border-radius:12px;text-align:center;font-weight:600
+}
+
+#machine-alert{
+  display:none;width:80%;margin:15px auto;padding:15px;
+  border-radius:12px;font-weight:600;
+  background:#ffe5e5;border:2px solid red;color:#b00020
+}
 </style>
 </head>
 
 <body>
+
 <a class="back-btn" href="index.html">⬅ Back</a>
-<h2 align="center">Pressure Process – CO₂ (mg)</h2>
+<h2 align="center">Pressure Process – CO₂ Emission (mg)</h2>
+
 <div id="suggestion"></div>
+<div id="machine-alert"></div>
 
 <div class="chart-container">
   <canvas id="chart"></canvas>
@@ -28,20 +41,34 @@ body{font-family:Poppins;background:#f4f4f4;padding:30px}
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
 
+/* ========== CONFIG ========== */
 const CHANNEL_ID="3204458";
 const READ_API_KEY="KAH4AJHZ9UA48ZRJ";
-const FIELD="field4"; // pressure
-const SAFE=1, WARNING=5;
+const FIELD="field4";     // 🔴 pressure CO₂
+const SAFE=1;             // mg
+const WARNING=5;          // mg (RED limit)
 
+/* ========== UI HELPERS ========== */
 function show(level,msg){
- const b=document.getElementById("suggestion");
- b.style.display="block";
- b.style.background=level==="red"?"#ffe5e5":level==="yellow"?"#fff4cc":"#e6f4ea";
- b.style.border="2px solid "+(level==="red"?"red":level==="yellow"?"orange":"green");
- b.style.color=level==="red"?"#b00020":level==="yellow"?"#8a6d00":"#1e7e34";
- b.innerText=msg;
+  const b=document.getElementById("suggestion");
+  b.style.display="block";
+  b.style.background=level==="red"?"#ffe5e5":level==="yellow"?"#fff4cc":"#e6f4ea";
+  b.style.border="2px solid "+(level==="red"?"red":level==="yellow"?"orange":"green");
+  b.style.color=level==="red"?"#b00020":level==="yellow"?"#8a6d00":"#1e7e34";
+  b.innerText=msg;
 }
 
+function showMachineAlert(msg){
+  const box=document.getElementById("machine-alert");
+  box.style.display="block";
+  box.innerHTML=msg;
+}
+
+function hideMachineAlert(){
+  document.getElementById("machine-alert").style.display="none";
+}
+
+/* ========== CHART ========== */
 const chart=new Chart(document.getElementById("chart"),{
  type:"line",
  data:{labels:[],datasets:[
@@ -54,8 +81,20 @@ const chart=new Chart(document.getElementById("chart"),{
    pointRadius:3,
    pointHoverRadius:6
   },
-  {label:"Average",data:[],borderDash:[5,5],borderColor:"blue",pointRadius:0},
-  {label:"Peak",data:[],borderDash:[2,2],borderColor:"purple",pointRadius:0}
+  {
+   label:"Average",
+   data:[],
+   borderDash:[5,5],
+   borderColor:"blue",
+   pointRadius:0
+  },
+  {
+   label:"Peak",
+   data:[],
+   borderDash:[2,2],
+   borderColor:"purple",
+   pointRadius:0
+  }
  ]},
  options:{
   scales:{y:{beginAtZero:true,title:{display:true,text:"mg CO₂"}}},
@@ -67,8 +106,11 @@ const chart=new Chart(document.getElementById("chart"),{
  }
 });
 
+/* ========== DATA UPDATE ========== */
 async function update(){
- const res=await fetch(`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/4.json?api_key=${READ_API_KEY}&results=60`);
+ const res=await fetch(
+   `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/4.json?api_key=${READ_API_KEY}&results=60`
+ );
  const j=await res.json();
  const f=j.feeds||[];
 
@@ -80,15 +122,31 @@ async function update(){
  const avg=v.reduce((a,b)=>a+b,0)/v.length;
  const peak=Math.max(...v);
 
- if(peak>WARNING) show("red","⚠ High pressure emission");
- else if(peak>SAFE) show("yellow","⚠ Pressure above normal");
- else show("green","✅ Pressure stable");
+ /* ----- STATUS MESSAGE ----- */
+ if(peak>WARNING) show("red","⚠ High pressure-related emission detected");
+ else if(peak>SAFE) show("yellow","⚠ Pressure emission above normal");
+ else show("green","✅ Pressure system operating normally");
+
+ /* ----- MACHINE DIAGNOSTIC ----- */
+ if(peak>WARNING){
+   showMachineAlert(`
+     🔴 <b>Possible Causes – Check These Pressure System Components:</b><br><br>
+     ✔ Leaks in pipes or joints<br>
+     ✔ Faulty pressure valves or regulators<br>
+     ✔ Worn seals or gaskets<br>
+     ✔ Compressor inefficiency or overload<br>
+     ✔ Blocked exhaust or relief paths
+   `);
+ } else {
+   hideMachineAlert();
+ }
 
  chart.data.labels=t;
  chart.data.datasets[0].data=v;
  chart.data.datasets[1].data=v.map(()=>avg);
  chart.data.datasets[2].data=v.map(()=>peak);
  chart.options.scales.y.max=Math.max(peak*2,1);
+
  chart.update();
 }
 

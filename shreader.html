@@ -45,8 +45,8 @@ Chart.register(window['chartjs-plugin-annotation']);
 const CHANNEL_ID = "3204458";
 const READ_API_KEY = "KAH4AJHZ9UA48ZRJ";
 const FIELD = "field3";        // 🔴 shredding CO₂
-const SAFE = 0.5;              // mg
-const WARNING = 2;             // mg (RED limit)
+const SAFE = 0.1;              // mg
+const WARNING = 0.3;             // mg (RED limit)
 const showEveryN = 5;          // dot frequency
 
 /* ========== UI HELPERS ========== */
@@ -182,3 +182,4 @@ setInterval(update,60000);
 </script>
 </body>
 </html>
+
